@@ -16,6 +16,10 @@ jobs:
       - run: node --check frontend/modules/navigation.js
       - run: node --check frontend/modules/admin.js
       - run: node --check frontend/modules/intake.js
+      - run: node --check worker/src/match-factors.js
+      - run: node --check frontend/modules/recommendations.js
+      - run: node --check frontend/modules/matching-view.js
+      - run: node --check frontend/modules/suggestions.js
       - run: node --check worker/src/index.js
       - run: node --check worker/src/public.js
       - run: node --check worker/src/matching-service.js
