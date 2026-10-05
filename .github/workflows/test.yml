@@ -16,3 +16,4 @@ jobs:
       - run: node --check frontend/modules/navigation.js
       - run: node --check worker/src/index.js
       - run: node --check worker/src/public.js
+      - run: node --check worker/src/matching-service.js
