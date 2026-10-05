@@ -62,6 +62,18 @@ async function crud(env, req, entity, id){
   return json({error:'Método no permitido'},405);
 }
 
+async function removeCharruchi(env){
+  const cfg=ENTITY_CONFIG.personas;
+  const rows=await listRows(env,cfg);
+  const matches=rows.filter(r=>String(r.email||'').trim().toLowerCase()==='charruchi@gmail.com' && !deleted(r.eliminado));
+  for(const current of matches){
+    const rec={...cleanRow(current),eliminado:true,estado:'Eliminado',fecha_actualizacion:now()};
+    await updateRecord(env,cfg,current.__row,rec);
+    await audit(env,'personas',current.id,'baja lógica','solicitud propietario');
+  }
+  return json({ok:true,removed:matches.length,ids:matches.map(x=>x.id)});
+}
+
 async function selfSave(env, req){
   const body=await req.json();
   const email=String(body.email||'').trim().toLowerCase();
@@ -305,6 +317,7 @@ export default { async fetch(req, env){
     if(path==='/api/health') return json({ok:true,service:'MESA API',storage:env.DB?'d1':'none',storageConfigured:Boolean(env.DB)},200,h);
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
+    if(path==='/api/maintenance/remove-charruchi'&&req.method==='GET') { const r=await removeCharruchi(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
     if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await recomputeMatches(env,req); return withHeaders(r,h); }
