@@ -43,8 +43,8 @@ jobs:
             const s=JSON.parse(process.argv[2]);
             if(!h.ok) throw new Error("health no OK: "+(h.storeError||"sin detalle"));
             if(s.error) throw new Error("stats error: "+s.error);
-            if(!["google","d1"].includes(h.storage)) throw new Error("storage inválido: "+h.storage);
+            if(h.storage!=="d1") throw new Error("storage inválido: "+h.storage);
             if(Number(s.personas)<0) throw new Error("contador personas inválido: "+s.personas);
             if(Number(s.proyectos)<0) throw new Error("contador proyectos inválido: "+s.proyectos);
-            console.log("MESA NUEVA OK:", JSON.stringify({storage:h.storage,googleConfigured:h.googleConfigured,personas:s.personas,proyectos:s.proyectos}));
+            console.log("MESA OK:", JSON.stringify({storage:h.storage,documentsStorage:h.documentsStorage,personas:s.personas,proyectos:s.proyectos}));
           ' "$HEALTH" "$STATS"
