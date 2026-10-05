@@ -1,49 +1,63 @@
-# MESA — Personas. Proyectos. Impacto real.
+# MESA — Mapa de Capacidades y Proyectos
 
-Aplicación pública y gratuita para conectar personas, capacidades, necesidades y proyectos.
+Aplicación pública para conectar personas, proyectos, capacidades y necesidades.
 
-## Arquitectura actual
+## Arquitectura
 
 **GitHub → Cloudflare Worker + Assets → Cloudflare D1**
 
-- **Cloudflare D1** es la fuente de verdad operativa de MESA.
-- La información de MESA V2 vive aislada en la tabla `mesa_v2_records`, separada por entidad.
-- **Google ya no es una dependencia operativa**.
-- **LocalStorage no es base de datos**; solo se utiliza para conservar el token personal de edición generado en el navegador.
-- El frontend es público: no requiere login para participar ni para cargar un proyecto.
+- **Cloudflare D1** es la única fuente de verdad operativa.
+- **Cloudflare R2** es el almacenamiento previsto para archivos y adjuntos cuando el binding `DOCS` esté configurado.
+- **LocalStorage no es base de datos**. Solo se usa para conservar el token personal de edición generado en el navegador.
+- **sessionStorage** se usa únicamente para la sesión administrativa.
+- La aplicación no depende de Google Sheets, Google Drive ni OAuth de Google.
 
-## Entidades
+## Modelo
 
-- Personas
-- Proyectos
-- Capacidades
-- Necesidades
-- Matches
-- Equipos
-- Pendientes
-- Documentos
-- Auditoría
+- `Personas`
+- `Proyectos`
+- `Capacidades`
+- `Necesidades`
+- `Matches`
+- `Equipos`
+- `Pendientes`
+- `Documentos`
+- `Auditoria`
 
 IDs estables: `P-0001`, `PR-0001`, `C-0001`, `N-0001`, `M-0001`, `E-0001`, `PE-0001`, `D-0001`.
 
-## API principal
+## API
 
 - `GET /api/health`
 - `GET /api/public/stats`
 - `GET /api/public/dashboard`
 - `POST /api/self/persona`
+- CRUD administrativo
 - `GET /api/search?q=...`
 - `POST /api/matches/recompute`
-- CRUD administrativo de entidades
+- `POST /api/documentos/upload`
 
-## Documentos
+## Persistencia
 
-La API está preparada para **Cloudflare R2** mediante el binding `DOCS`. Si R2 todavía no está configurado, MESA continúa funcionando normalmente para personas, proyectos, matching y búsqueda; solo la carga binaria de archivos queda deshabilitada temporalmente.
+D1 usa una tabla aislada `mesa_v2_records` con separación por entidad. No se mezclan registros de sistemas anteriores.
+
+## Archivos
+
+El endpoint de documentos usa el binding R2 `DOCS`. Si el bucket todavía no está configurado, el resto de MESA continúa funcionando y el endpoint responde de forma explícita que el almacenamiento de archivos está pendiente.
+
+## Seguridad
+
+- Escrituras administrativas protegidas por `MESA_ADMIN_TOKEN`.
+- Datos privados como correo no se exponen en el dashboard público.
+- Las bajas son lógicas.
+- Existe auditoría de cambios.
 
 ## Pruebas
 
-El repositorio incluye pruebas con Node `node:test` y despliegue automático a Cloudflare desde `main`.
+- `npm test`
+- `node --check frontend/app.js`
+- `node --check worker/src/index.js`
 
 ## Costo
 
-Diseñado para operar con infraestructura gratuita o free-tier, sin Replit ni SaaS pago obligatorio.
+Diseñado para funcionar dentro de las capas gratuitas de GitHub y Cloudflare durante la etapa inicial, sin SaaS pago obligatorio.
