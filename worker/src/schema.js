@@ -17,7 +17,7 @@ export const ENTITY_CONFIG = {
   },
   matches: {
     sheet: 'Matches', prefix: 'M',
-    headers: ['id','origen_tipo','origen_id','destino_tipo','destino_id','persona_id','proyecto_id','necesidad_id','capacidad_id','explicacion','puntuacion','estado','fecha','fecha_actualizacion','origen_informacion','origen_referencia','eliminado']
+    headers: ['id','origen_tipo','origen_id','destino_tipo','destino_id','persona_id','proyecto_id','necesidad_id','capacidad_id','explicacion','puntuacion','semaforo','estado','fecha','fecha_actualizacion','origen_informacion','origen_referencia','eliminado']
   },
   equipos: {
     sheet: 'Equipos', prefix: 'E',
