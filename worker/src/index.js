@@ -1,5 +1,6 @@
 import { ENTITY_CONFIG, PUBLIC_ENTITIES, normalizeEntityName, validateRecord } from './schema.js';
-import { uploadFileToDrive } from './google.js';\nimport { ensureStore, listRows, appendRecord, updateRecord } from './store.js';
+import { uploadFileToDrive } from './google.js';
+import { ensureStore, listRows, appendRecord, updateRecord } from './store.js';
 import { buildMatches } from './matching.js';
 
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
@@ -38,7 +39,7 @@ async function crud(env, req, entity, id){
     await updateRecord(env,cfg,current.__row,rec); await audit(env,entity,id,'editar',patch.origen_informacion||rec.origen_informacion); return json(rec);
   }
   if(req.method==='DELETE'){
-    const rec={...cleanRow(current),eliminado:true,estado:'Eliminado',fecha_actualizacion:now()}; await updateRow(env,cfg,current.__row,rec); await audit(env,entity,id,'baja lógica','carga manual'); return json({ok:true,id});
+    const rec={...cleanRow(current),eliminado:true,estado:'Eliminado',fecha_actualizacion:now()}; await updateRecord(env,cfg,current.__row,rec); await audit(env,entity,id,'baja lógica','carga manual'); return json({ok:true,id});
   }
   return json({error:'Método no permitido'},405);
 }
