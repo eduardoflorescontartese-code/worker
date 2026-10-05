@@ -59,7 +59,7 @@ export function createSuggestions({$, $$, esc, getDashboard}){
           '<div><strong>'+esc(p.nombre||'Proyecto')+'</strong>'+
           '<p>'+esc([p.sector,p.etapa].filter(Boolean).join(' · ')||'Proyecto en MESA')+'</p>'+
           '<div class="chips">'+[p.sector,p.etapa].filter(Boolean).slice(0,2).map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+'</div></div>'+
-          (score===null?'<span class="row-arrow">›</span>':'<span class="suggestion-score">'+score+'%</span>')+
+          (score===null?'<span class="row-arrow">›</span>':'<span class="suggestion-score">'+score.toFixed(1)+'</span>')+
         '</article>';
       }).join(''):'<div class="empty-mini">Sin proyectos todavía</div>';
       return;
