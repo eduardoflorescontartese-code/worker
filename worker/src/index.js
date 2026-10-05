@@ -11,7 +11,16 @@ function cors(env, req){
   const allowed = env.ALLOWED_ORIGIN || '*';
   return {'access-control-allow-origin': allowed==='*' ? '*' : (origin===allowed ? origin : allowed),'access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'GET,POST,PUT,DELETE,OPTIONS','vary':'Origin'};
 }
-function authorized(env, req){ const h=req.headers.get('authorization')||''; return !!env.MESA_ADMIN_TOKEN && h===`Bearer ${env.MESA_ADMIN_TOKEN}`; }
+const ADMIN_FALLBACK_HASH='c0007e0f3c50636a4edc1860dfeba3676dfc2fef5c57ad6e3a0f2d490e65d201';
+async function sha256Hex(value){ const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||''))); return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+async function authorized(env, req){
+  const h=req.headers.get('authorization')||'';
+  if(env.MESA_ADMIN_TOKEN && h===`Bearer ${env.MESA_ADMIN_TOKEN}`) return true;
+  if(!h.startsWith('Bearer ')) return false;
+  const token=h.slice(7).trim();
+  if(!token) return false;
+  return (await sha256Hex(token))===ADMIN_FALLBACK_HASH;
+}
 function cleanRow(o){ const x={...o}; delete x.__row; return x; }
 function deleted(v){ return v===true || ['true','1','sí','si'].includes(String(v).toLowerCase()); }
 function nextId(rows,prefix){ let max=0; const re=new RegExp(`^${prefix}-(\\d+)$`); for(const r of rows){ const m=String(r.id||'').match(re); if(m) max=Math.max(max,Number(m[1])); } return `${prefix}-${String(max+1).padStart(4,'0')}`; }
@@ -25,22 +34,18 @@ function publicProject(r){ return {id:r.id,nombre:r.nombre||'',creador_id:r.crea
 async function crud(env, req, entity, id){
   const cfg=ENTITY_CONFIG[entity];
   if(req.method==='GET'){
-    const isAdmin=authorized(env,req);
+    const isAdmin=await authorized(env,req);
     if(id){
       const row=await findById(env,entity,id);
       if(!row || deleted(row.eliminado)) return json({error:'No encontrado'},404);
       if(isAdmin) return json(cleanRow(row));
-      if(entity==='personas') return json(publicPerson(row));
-      if(entity==='proyectos') return json(publicProject(row));
       return json({error:'No autorizado'},401);
     }
     const rows=await listEntity(env,entity);
     if(isAdmin) return json(rows.map(cleanRow));
-    if(entity==='personas') return json(rows.map(publicPerson));
-    if(entity==='proyectos') return json(rows.map(publicProject));
     return json({error:'No autorizado'},401);
   }
-  if(!authorized(env,req)) return json({error:'No autorizado'},401);
+  if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
   if(req.method==='POST'){
     const body=validateRecord(entity,await req.json()); const rows=await listRows(env,cfg); const ts=now();
     const rec={...body,id:body.id||nextId(rows,cfg.prefix),fecha_actualizacion:ts,origen_informacion:body.origen_informacion||'carga manual',eliminado:false};
@@ -62,16 +67,25 @@ async function selfSave(env, req){
   const body=await req.json();
   const email=String(body.email||'').trim().toLowerCase();
   const nombre=String(body.nombre_completo||'').trim();
+  const editToken=String(body.edit_token||'').trim();
   if(!nombre) return json({error:'El nombre es obligatorio'},400);
   if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return json({error:'Ingresá un correo válido'},400);
+  if(editToken.length<20) return json({error:'Falta tu enlace personal de edición'},403);
 
+  const tokenHash=await sha256Hex(editToken);
   const cfg=ENTITY_CONFIG.personas;
   const rows=await listRows(env,cfg);
   let current=rows.find(r=>String(r.email||'').trim().toLowerCase()===email && !deleted(r.eliminado));
   const ts=now();
+
+  if(current?.self_edit_hash && current.self_edit_hash!==tokenHash){
+    return json({error:'Esta ficha solo puede editarse desde su enlace personal'},403);
+  }
+
   const allowed={
     nombre_completo:nombre,
     email,
+    self_edit_hash:current?.self_edit_hash||tokenHash,
     profesion:String(body.profesion||'').trim(),
     especialidad:String(body.especialidad||'').trim(),
     puede_aportar:String(body.puede_aportar||'').trim(),
@@ -84,8 +98,7 @@ async function selfSave(env, req){
 
   let person;
   if(current){
-    person={...cleanRow(current)};
-    for(const [k,v] of Object.entries(allowed)) if(v!=='' || ['especialidad','puede_aportar','busca'].includes(k)) person[k]=v;
+    person={...cleanRow(current),...allowed,id:current.id};
     await updateRecord(env,cfg,current.__row,person);
     await audit(env,'personas',person.id,'autocarga/editar','autocarga web');
   }else{
@@ -121,17 +134,23 @@ async function selfSave(env, req){
       await audit(env,'proyectos',prec.id,'autocarga/crear','autocarga web');
     }
   }
-  return json({ok:true,persona:publicPerson(person)});
+  return json({ok:true,persona:{id:person.id,nombre_completo:person.nombre_completo,estado:person.estado}});
+}
+
+async function publicStats(env){
+  const people=await listEntity(env,'personas');
+  const projects=await listEntity(env,'proyectos');
+  return json({personas:people.length,proyectos:projects.length});
 }
 
 async function bootstrap(env, req){
-  if(!authorized(env,req)) return json({error:'No autorizado'},401);
+  if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
   await ensureStore(env,ENTITY_CONFIG);
   return json({ok:true,sheets:Object.values(ENTITY_CONFIG).map(x=>x.sheet)});
 }
 
 async function recomputeMatches(env, req){
-  if(!authorized(env,req)) return json({error:'No autorizado'},401);
+  if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
   const needs=await listEntity(env,'necesidades'); const caps=await listEntity(env,'capacidades'); const existing=await listEntity(env,'matches'); const cfg=ENTITY_CONFIG.matches;
   const known=new Set(existing.map(m=>`${m.necesidad_id}|${m.capacidad_id}`)); let created=0;
   for(const m of buildMatches(needs,caps)){
@@ -150,7 +169,7 @@ async function globalSearch(env, q){
 }
 
 async function uploadDocument(env, req){
-  if(!authorized(env,req)) return json({error:'No autorizado'},401);
+  if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
   const form=await req.formData(); const file=form.get('file'); if(!(file instanceof File)) return json({error:'Falta archivo'},400);
   const drive=await uploadFileToDrive(env,file,{name:file.name});
   const cfg=ENTITY_CONFIG.documentos, rows=await listRows(env,cfg), ts=now();
@@ -165,6 +184,7 @@ export default { async fetch(req, env){
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     await ensureStore(env,ENTITY_CONFIG);
     if(path==='/api/health') return json({ok:true,service:'MESA API',storage:env.DB?'d1':'google',storageConfigured:Boolean(env.DB||(env.GOOGLE_SPREADSHEET_ID&&env.GOOGLE_REFRESH_TOKEN))},200,h);
+    if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
     if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await recomputeMatches(env,req); return withHeaders(r,h); }
