@@ -4,7 +4,7 @@ import { buildMatches } from './matching.js';
 import { createPublicApi } from './public.js';
 import { createMatchingService } from './matching-service.js';
 
-const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
+const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff',...headers}});\nconst safe=(value,max=1000)=>String(value??'').trim().slice(0,max);
 const now = () => new Date().toISOString();
 
 function cors(env, req){
@@ -101,11 +101,11 @@ async function selfSave(env, req){
     nombre_completo:nombre,
     email,
     self_edit_hash:current?.self_edit_hash||tokenHash,
-    profesion:String(body.profesion||'').trim(),
-    especialidad:String(body.especialidad||'').trim(),
-    puede_aportar:String(body.puede_aportar||'').trim(),
-    busca:String(body.busca||'').trim(),
-    tiene_proyecto_propio:String(body.proyecto||'').trim() ? 'Sí — '+String(body.proyecto).trim() : (current?.tiene_proyecto_propio||''),
+    profesion:safe(body.profesion,180),
+    especialidad:safe(body.especialidad,180),
+    puede_aportar:safe(body.puede_aportar,4000),
+    busca:safe(body.busca,4000),
+    tiene_proyecto_propio:safe(body.proyecto,220) ? 'Sí — '+safe(body.proyecto,220) : (current?.tiene_proyecto_propio||''),
     estado:'Activo',
     fecha_actualizacion:ts,
     origen_informacion:'autocarga web'
@@ -122,7 +122,7 @@ async function selfSave(env, req){
     await audit(env,'personas',person.id,'autocarga/crear','autocarga web');
   }
 
-  const proyecto=String(body.proyecto||'').trim();
+  const proyecto=safe(body.proyecto,220);
   if(proyecto){
     const pcfg=ENTITY_CONFIG.proyectos;
     const prows=await listRows(env,pcfg);
@@ -131,9 +131,9 @@ async function selfSave(env, req){
       nombre:proyecto,
       creador_id:person.id,
       responsables:person.id,
-      descripcion:String(body.descripcion_proyecto||'').trim(),
-      sector:String(body.sector||'').trim(),
-      etapa:String(body.etapa||'').trim()||existing?.etapa||'Por determinar',
+      descripcion:safe(body.descripcion_proyecto,5000),
+      sector:safe(body.sector,180),
+      etapa:safe(body.etapa,120)||existing?.etapa||'Por determinar',
       estado:'Activo',
       fecha_actualizacion:ts,
       origen_informacion:'autocarga web',
@@ -209,7 +209,7 @@ export default { async fetch(req, env){
   const h=cors(env,req); if(req.method==='OPTIONS') return new Response(null,{status:204,headers:h});
   try{
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
-    if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
+    if(!path.startsWith('/api/') && env.ASSETS) return secureAsset(await env.ASSETS.fetch(req));
     if(path==='/api/health') {
       let storeReady=true, storeError='';
       try{ await ensureStore(env); }catch(e){ storeReady=false; storeError=e?.message||String(e); }
@@ -238,3 +238,14 @@ export default { async fetch(req, env){
 }};
 
 function withHeaders(res, headers){ const out=new Response(res.body,res); for(const [k,v] of Object.entries(headers)) out.headers.set(k,v); return out; }
+
+
+function secureAsset(res){
+  const headers=new Headers(res.headers);
+  headers.set('x-content-type-options','nosniff');
+  headers.set('referrer-policy','strict-origin-when-cross-origin');
+  headers.set('permissions-policy','camera=(), microphone=(), geolocation=()');
+  headers.set('x-frame-options','DENY');
+  headers.set('content-security-policy',"default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+  return new Response(res.body,{status:res.status,statusText:res.statusText,headers});
+}
