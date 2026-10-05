@@ -69,7 +69,7 @@ export function computeMatchFactors(need,capability,overall100){
 
   const complementariedad=Math.min(7,Math.max(1,
     overall7+
-    (need.entidad_tipo!==capability.entidad_tipo?.3:0)
+    (need.entidad_tipo!==capability.entidad_tipo ? 0.3 : 0)
   ));
 
   const round=n=>Number(n.toFixed(1));
