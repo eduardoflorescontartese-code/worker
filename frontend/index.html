@@ -1,4 +1,55 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MESA — Mapa de Capacidades y Proyectos</title><link rel="stylesheet" href="./styles.css"></head><body>
-<div class="shell"><aside><div class="brand"><strong>MESA</strong><span>Mapa de Capacidades y Proyectos</span></div><nav id="nav"></nav><div class="aside-foot"><button id="authBtn" class="secondary">Acceso</button><small>Google Sheets/Drive = fuente de verdad</small></div></aside><main><header><div><h1 id="title">Dashboard</h1><p id="subtitle">¿Quién puede ayudar a quién?</p></div><div class="search"><input id="globalSearch" placeholder="Buscar personas, proyectos, capacidades…"><button id="searchBtn">Buscar</button></div></header><section id="app"></section></main></div>
-<dialog id="modal"><form method="dialog" id="modalForm"><div class="dialog-head"><h2 id="modalTitle"></h2><button value="cancel" class="icon">×</button></div><div id="modalBody"></div><div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="modalSave" value="default">Guardar</button></div></form></dialog>
-<script src="./config.js"></script><script type="module" src="./app.js"></script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#171713">
+  <title>MESA — Mapa vivo de capacidades y proyectos</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">MESA</div>
+      <span>Mapa de Capacidades y Proyectos</span>
+    </div>
+    <div class="nav-caption">OPERACIÓN</div>
+    <nav id="nav"></nav>
+    <div class="aside-foot">
+      <button id="authBtn" class="secondary">Acceso</button>
+      <div class="truth-note"><span class="truth-dot"></span><small>Sheets / Drive · fuente de verdad</small></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="headline">
+        <p class="eyebrow">MESA / RED OPERATIVA</p>
+        <h1 id="title">Mapa vivo</h1>
+        <p id="subtitle">Quién va con quién, en qué proyecto y para hacer qué.</p>
+      </div>
+      <div class="top-actions">
+        <div class="search">
+          <input id="globalSearch" placeholder="Buscar persona, proyecto o capacidad…">
+          <button id="searchBtn">Buscar</button>
+        </div>
+        <div id="liveState" class="live-state"><span></span>Sincronizando</div>
+      </div>
+    </header>
+    <section id="app"></section>
+  </main>
+</div>
+
+<dialog id="modal">
+  <form method="dialog" id="modalForm">
+    <div class="dialog-head"><h2 id="modalTitle"></h2><button value="cancel" class="icon">×</button></div>
+    <div id="modalBody"></div>
+    <div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="modalSave" value="default">Guardar</button></div>
+  </form>
+</dialog>
+
+<script src="./config.js"></script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
