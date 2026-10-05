@@ -1,0 +1,10 @@
+{
+  "name": "mesa-cloudflare-google",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "node --test worker/test/*.test.mjs",
+    "serve:frontend": "python3 -m http.server 4173 -d frontend"
+  }
+}
