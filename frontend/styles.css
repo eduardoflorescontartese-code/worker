@@ -574,3 +574,15 @@ html,body{overflow-x:hidden}
   }
   .recommendation-list{grid-template-columns:repeat(5,minmax(0,1fr))}
 }
+
+
+/* Entrega final — alineación literal con la referencia MESA */
+.topbar-tagline{
+  position:absolute;left:18px;top:50%;transform:translateY(-50%);
+  color:#53627a;font-size:11px;font-weight:500;white-space:nowrap
+}
+.brand{padding-bottom:26px}
+.brand strong{font-size:27px}
+@media(max-width:1050px){
+  .topbar-tagline{display:none}
+}
