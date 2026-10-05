@@ -33,32 +33,35 @@ function publicProject(r){ return {id:r.id,nombre:r.nombre||'',creador_id:r.crea
 function publicCapability(r){ return {id:r.id,entidad_tipo:r.entidad_tipo||'',entidad_id:r.entidad_id||'',capacidad:r.capacidad||'',categoria:r.categoria||'',nivel:r.nivel||'',estado:r.estado||'Disponible'}; }
 function publicNeed(r){ return {id:r.id,entidad_tipo:r.entidad_tipo||'',entidad_id:r.entidad_id||'',necesidad:r.necesidad||'',categoria:r.categoria||'',prioridad:r.prioridad||'',estado:r.estado||'Abierta'}; }
 function publicMatch(r){ return {id:r.id,persona_id:r.persona_id||'',proyecto_id:r.proyecto_id||'',necesidad_id:r.necesidad_id||'',capacidad_id:r.capacidad_id||'',explicacion:r.explicacion||'',puntuacion:Number(r.puntuacion)||0,semaforo:r.semaforo||'',estado:r.estado||'sugerido'}; }
+function publicTeam(r){ return {id:r.id,nombre:r.nombre||'',proyecto_id:r.proyecto_id||'',roles:r.roles||'',capacidades_cubiertas:r.capacidades_cubiertas||'',capacidades_faltantes:r.capacidades_faltantes||'',estado:r.estado||'Activo',notas:r.notas||'',proximos_pasos:r.proximos_pasos||''}; }
 
 async function publicDashboard(env){
-  const [people,projects,needs,caps,matches]=await Promise.all([
+  const [people,projects,needs,caps,matches,teams]=await Promise.all([
     listEntity(env,'personas'),
     listEntity(env,'proyectos'),
     listEntity(env,'necesidades'),
     listEntity(env,'capacidades'),
-    listEntity(env,'matches')
+    listEntity(env,'matches'),
+    listEntity(env,'equipos')
   ]);
   const peopleMap=new Map(people.map(p=>[String(p.id),publicPerson(p)]));
   const projectMap=new Map(projects.map(p=>[String(p.id),publicProject(p)]));
   const safeMatches=matches
     .map(publicMatch)
     .sort((a,b)=>b.puntuacion-a.puntuacion)
-    .slice(0,8)
+    .slice(0,60)
     .map(m=>({
       ...m,
       persona:peopleMap.get(String(m.persona_id))||null,
       proyecto:projectMap.get(String(m.proyecto_id))||null
     }));
   return json({
-    counts:{personas:people.length,proyectos:projects.length,necesidades:needs.length,capacidades:caps.length,matches:matches.length},
-    personas:people.slice(0,6).map(publicPerson),
-    proyectos:projects.slice(0,6).map(publicProject),
-    necesidades:needs.slice(0,6).map(publicNeed),
-    capacidades:caps.slice(0,6).map(publicCapability),
+    counts:{personas:people.length,proyectos:projects.length,necesidades:needs.length,capacidades:caps.length,matches:matches.length,equipos:teams.length},
+    personas:people.slice(0,60).map(publicPerson),
+    proyectos:projects.slice(0,60).map(publicProject),
+    necesidades:needs.slice(0,60).map(publicNeed),
+    capacidades:caps.slice(0,60).map(publicCapability),
+    equipos:teams.slice(0,60).map(publicTeam),
     matches:safeMatches
   });
 }
