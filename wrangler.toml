@@ -1,4 +1,4 @@
-name = "mesa-api"
+name = "worker"
 main = "worker/src/index.js"
 compatibility_date = "2026-10-04"
 
