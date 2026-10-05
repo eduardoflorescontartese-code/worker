@@ -260,7 +260,36 @@ const INITIAL_PEOPLE = [
     origen_referencia:'Correo directo 2026-10-05',
     eliminado:false
   }
-];
+,
+  {
+    id:'P-0014',
+    nombre:'Annabela',
+    apellido:'Estévez Onetto',
+    nombre_completo:'Annabela Estévez Onetto',
+    email:'aestevezonetto@gmail.com',
+    profesion:'Química farmacéutica / química cosmética',
+    especialidad:'Formulaciones y habilitación de laboratorios',
+    puede_aportar:'Formulación, química cosmética y experiencia en habilitación de laboratorios cosméticos, domisanitarios y alimentarios',
+    busca:'Colaborar y conectar con proyectos donde su experiencia pueda aportar',
+    tiene_proyecto_propio:'No informado',
+    estado:'Activo',
+    origen_informacion:'correo directo',
+    origen_referencia:'Correo personal 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'P-0015',
+    nombre:'Victoria',
+    apellido:'Campbell',
+    nombre_completo:'Victoria Campbell',
+    email:'vicosdr@gmail.com',
+    observaciones:'Manifestó interés en participar y espera la primera instancia virtual.',
+    preguntas_pendientes:'Área, profesión, capacidades, proyecto o idea y necesidades.',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Correo 2026-10-05',
+    eliminado:false
+  }];
 
 const INITIAL_PROJECTS = [
   {
