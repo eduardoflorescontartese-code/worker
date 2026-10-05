@@ -15,3 +15,4 @@ jobs:
       - run: node --check frontend/app.modular.js
       - run: node --check frontend/modules/navigation.js
       - run: node --check worker/src/index.js
+      - run: node --check worker/src/public.js
