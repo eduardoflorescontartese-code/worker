@@ -120,6 +120,10 @@ async function rateLimit(env,req,scope,limit){
   const key=scope+'|'+bucket+'|'+identity;
   const expiresAt=(bucket+1)*WINDOW_MS;
 
+  await env.DB.prepare(
+    'DELETE FROM mesa_v2_rate_limits WHERE expires_at<?'
+  ).bind(now).run();
+
   const current=await env.DB.prepare(
     'SELECT count,expires_at FROM mesa_v2_rate_limits WHERE key=?'
   ).bind(key).first();
