@@ -66,7 +66,14 @@ async function load(){
   }
 }
 
+const adminMode = location.hash === '#admin';
+if(adminMode){
+  const panel = $('#adminPanel');
+  if(panel) panel.hidden = false;
+}
+
 async function createPerson(data){
+  if(!adminMode) throw new Error('La carga pública está deshabilitada.');
   try{
     return await api.create('personas', data);
   }catch(e){
@@ -78,7 +85,8 @@ async function createPerson(data){
   }
 }
 
-$('#personForm').addEventListener('submit', async e => {
+const personForm = $('#personForm');
+if(personForm) personForm.addEventListener('submit', async e => {
   e.preventDefault();
 
   const nombre = $('#name').value.trim();
