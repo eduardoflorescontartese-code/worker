@@ -1,7 +1,7 @@
 export const ENTITY_CONFIG = {
   personas: {
     sheet: 'Personas', prefix: 'P',
-    headers: ['id','nombre','apellido','nombre_completo','email','telefono','ciudad','departamento','pais','profesion','especialidad','experiencia','seniority','sectores','tecnologias','capacidades_tecnicas_resumen','capacidades_no_tecnicas_resumen','disponibilidad','intereses','puede_aportar','busca','tiene_proyecto_propio','linkedin','web','observaciones','preguntas_pendientes','estado','fecha_incorporacion','fecha_actualizacion','origen_informacion','origen_referencia','eliminado']
+    headers: ['id','nombre','apellido','nombre_completo','email','self_edit_hash','telefono','ciudad','departamento','pais','profesion','especialidad','experiencia','seniority','sectores','tecnologias','capacidades_tecnicas_resumen','capacidades_no_tecnicas_resumen','disponibilidad','intereses','puede_aportar','busca','tiene_proyecto_propio','linkedin','web','observaciones','preguntas_pendientes','estado','fecha_incorporacion','fecha_actualizacion','origen_informacion','origen_referencia','eliminado']
   },
   proyectos: {
     sheet: 'Proyectos', prefix: 'PR',
