@@ -118,6 +118,7 @@ function renderLiveMap(){
   document.querySelectorAll('[data-map-filter]').forEach(b=>b.classList.toggle('active',b.dataset.mapFilter===mapFilter));
   document.querySelectorAll('[data-map-node]').forEach(b=>b.onclick=()=>{mapSelected={type:b.dataset.mapNode,id:b.dataset.id};renderLiveMap()});
   renderInspector(model,data,edges);
+  document.querySelectorAll('[data-new-pending]').forEach(b=>b.onclick=()=>openQuickPending(b.dataset.newPending,b.dataset.id,b.dataset.responsable||''));
   document.querySelectorAll('[data-confirm-match]').forEach(b=>b.onclick=()=>decideMatchFromMap(b.dataset.confirmMatch,'confirm',b));
   document.querySelectorAll('[data-dismiss-match]').forEach(b=>b.onclick=()=>decideMatchFromMap(b.dataset.dismissMatch,'dismiss',b));
 }
@@ -138,13 +139,21 @@ function recentActivity(data,limit=6){
   if(!rows.length)return'<div class="muted">Todavía no hay actividad auditada.</div>';
   return rows.map(x=>'<div class="activity-item"><span>'+esc(x.accion||'cambio')+'</span><strong>'+esc((x.entidad||'')+' '+(x.registro_id||''))+'</strong><small>'+esc(x.detalle||x.origen||'')+'</small><time>'+esc(x.fecha?new Date(x.fecha).toLocaleString('es-UY'):'')+'</time></div>').join('');
 }
+function openQuickPending(type,id,defaultResponsible=''){
+  const modal=document.querySelector('#modal'),form=document.querySelector('#modalForm');
+  document.querySelector('#modalTitle').textContent='Nuevo pendiente';
+  document.querySelector('#modalBody').innerHTML='<div class="grid"><div class="field" style="grid-column:1/-1"><label>Pendiente</label><textarea name="pendiente" required></textarea></div><div class="field"><label>Prioridad</label><select name="prioridad"><option>Alta</option><option selected>Media</option><option>Baja</option></select></div><div class="field"><label>Responsable ID</label><input name="responsable_id" value="'+esc(defaultResponsible)+'" placeholder="P-0001"></div><div class="field"><label>Fecha objetivo</label><input name="fecha_objetivo" type="date"></div><div class="field"><label>Notas</label><input name="notas"></div></div>';
+  form.onsubmit=async e=>{e.preventDefault();if(e.submitter?.value==='cancel'){modal.close();return}const fd=new FormData(form);try{await api.create('pendientes',{entidad_tipo:type,entidad_id:id,pendiente:fd.get('pendiente'),prioridad:fd.get('prioridad')||'Media',estado:'abierto',fecha_alta:new Date().toISOString(),fecha_objetivo:fd.get('fecha_objetivo')||'',responsable_id:fd.get('responsable_id')||'',notas:fd.get('notas')||'',origen_informacion:'carga manual'});modal.close();await refreshLiveMap(false)}catch(err){alert(err.message)}};
+  modal.showModal();
+}
+
 function renderInspector(model,data,edges){
   const box=document.querySelector('#map-inspector');if(!box)return;
   if(!mapSelected){box.innerHTML='<div class="empty">Seleccioná una persona o proyecto.</div>';return}
   if(mapSelected.type==='person'){
     const p=model.personMap.get(String(mapSelected.id));if(!p){box.innerHTML='<div class="empty">Perfil no encontrado.</div>';return}
     const rel=edges.filter(e=>e.personId===p.id),caps=capsFor(data,p.id),pending=pendingFor(data,'persona',p.id);
-    box.innerHTML='<div class="inspector-head"><span class="inspector-kicker">PERSONA · '+esc(p.id)+'</span><h2>'+esc(p.nombre_completo||p.id)+'</h2><p>'+esc([p.profesion,p.especialidad,p.seniority].filter(Boolean).join(' · ')||'Perfil en construcción')+'</p></div>'+
+    box.innerHTML='<div class="inspector-head"><span class="inspector-kicker">PERSONA · '+esc(p.id)+'</span><h2>'+esc(p.nombre_completo||p.id)+'</h2><p>'+esc([p.profesion,p.especialidad,p.seniority].filter(Boolean).join(' · ')||'Perfil en construcción')+'</p><button class="secondary inspector-action" data-new-pending="persona" data-id="'+esc(p.id)+'" data-responsable="'+esc(p.id)+'">Asignar pendiente</button></div>'+
       '<section class="inspector-section"><h4>Qué puede aportar</h4><div class="inspector-list">'+(caps.length?caps.slice(0,8).map(x=>'<div class="cap-item"><strong>'+esc(x.capacidad)+'</strong><br>'+esc([x.categoria,x.nivel].filter(Boolean).join(' · '))+'</div>').join(''):'<div class="muted">Sin capacidades registradas.</div>')+'</div></section>'+
       '<section class="inspector-section"><h4>Con quién / dónde encaja</h4><div class="inspector-list">'+(rel.length?rel.map(e=>{const pr=model.projectMap.get(e.projectId);return '<div class="inspector-item"><span class="mini-avatar">'+esc(initials(pr?.nombre||'P'))+'</span><div><strong>'+esc(pr?.nombre||e.projectId)+'</strong><small>'+esc(e.type==='team'?'Equipo confirmado · '+e.label:'Match '+e.score+'% · '+e.label)+'</small>'+matchActions(e)+'</div></div>'}).join(''):'<div class="muted">Sin vínculos visibles con este filtro.</div>')+'</div></section>'+
       '<section class="inspector-section"><h4>Pendientes</h4>'+(pending.length?pending.slice(0,6).map(x=>'<div class="task-item">'+esc(x.pendiente)+'</div>').join(''):'<div class="muted">Sin pendientes abiertos.</div>')+'</section><section class="inspector-section"><h4>Actividad reciente</h4><div class="activity-list">'+recentActivity(data,5)+'</div></section><div class="legend"><span><i></i>Equipo</span><span><i class="dash"></i>Match sugerido</span></div>';
@@ -152,7 +161,7 @@ function renderInspector(model,data,edges){
   }
   const p=model.projectMap.get(String(mapSelected.id));if(!p){box.innerHTML='<div class="empty">Proyecto no encontrado.</div>';return}
   const rel=edges.filter(e=>e.projectId===p.id),needs=openNeedsForProject(data,p.id),pending=pendingFor(data,'proyecto',p.id);
-  box.innerHTML='<div class="inspector-head"><span class="inspector-kicker">PROYECTO · '+esc(p.id)+'</span><h2>'+esc(p.nombre||p.id)+'</h2><p>'+esc([p.sector,p.etapa,p.estado].filter(Boolean).join(' · '))+'</p></div>'+
+  box.innerHTML='<div class="inspector-head"><span class="inspector-kicker">PROYECTO · '+esc(p.id)+'</span><h2>'+esc(p.nombre||p.id)+'</h2><p>'+esc([p.sector,p.etapa,p.estado].filter(Boolean).join(' · '))+'</p><button class="secondary inspector-action" data-new-pending="proyecto" data-id="'+esc(p.id)+'">Crear pendiente</button></div>'+
     '<section class="inspector-section"><h4>Quién va con quién y para qué</h4><div class="inspector-list">'+(rel.length?rel.map(e=>{const person=model.personMap.get(e.personId);return '<div class="inspector-item"><span class="mini-avatar">'+esc(initials(person?.nombre_completo||'P'))+'</span><div><strong>'+esc(person?.nombre_completo||e.personId)+'</strong><small>'+esc(e.type==='team'?'Confirmado · '+e.label:'Sugerido '+e.score+'% · '+e.label)+'</small>'+matchActions(e)+'</div></div>'}).join(''):'<div class="muted">Aún no hay personas vinculadas.</div>')+'</div></section>'+
     '<section class="inspector-section"><h4>Necesidades abiertas</h4>'+(needs.length?needs.slice(0,8).map(x=>'<div class="need-item"><strong>'+esc(x.necesidad)+'</strong><br>'+esc([x.categoria,x.prioridad].filter(Boolean).join(' · '))+'</div>').join(''):'<div class="muted">No hay necesidades abiertas registradas.</div>')+'</section>'+
     '<section class="inspector-section"><h4>Pendientes</h4>'+(pending.length?pending.slice(0,6).map(x=>'<div class="task-item">'+esc(x.pendiente)+'</div>').join(''):'<div class="muted">Sin pendientes abiertos.</div>')+'</section><section class="inspector-section"><h4>Actividad reciente</h4><div class="activity-list">'+recentActivity(data,5)+'</div></section><div class="legend"><span><i></i>Equipo confirmado</span><span><i class="dash"></i>Match sugerido</span></div>';
