@@ -27,6 +27,23 @@ export function createSuggestions({$, $$, esc, getDashboard}){
     $('#needsCount').textContent=c.necesidades||0;
   }
 
+
+  function emptyRows(label){
+    const rows=[];
+    for(let i=0;i<5;i++){
+      rows.push(
+        '<article class="suggestion-row empty-suggestion">'+
+          '<div class="person-dot empty-dot">—</div>'+
+          '<div><strong>'+(i===0?esc(label):'&nbsp;')+'</strong>'+
+          '<p>'+(i===0?'Sin información todavía':'&nbsp;')+'</p>'+
+          '<div class="chips"><span class="chip empty-chip">&nbsp;</span><span class="chip empty-chip">&nbsp;</span></div></div>'+
+          '<span class="row-arrow">›</span>'+
+        '</article>'
+      );
+    }
+    return rows.join('');
+  }
+
   function render(){
     const d=getDashboard();
     setCounts();
@@ -46,7 +63,7 @@ export function createSuggestions({$, $$, esc, getDashboard}){
           '<div class="chips">'+[p.profesion,p.especialidad].filter(Boolean).slice(0,2).map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+'</div></div>'+
           (score===null?'<span class="row-arrow">›</span>':'<span class="suggestion-score">'+score.toFixed(1)+'</span>')+
         '</article>';
-      }).join(''):'<div class="empty-mini">Sin personas todavía</div>';
+      }).join(''):emptyRows('Personas');
       return;
     }
 
@@ -61,7 +78,7 @@ export function createSuggestions({$, $$, esc, getDashboard}){
           '<div class="chips">'+[p.sector,p.etapa].filter(Boolean).slice(0,2).map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+'</div></div>'+
           (score===null?'<span class="row-arrow">›</span>':'<span class="suggestion-score">'+score+'%</span>')+
         '</article>';
-      }).join(''):'<div class="empty-mini">Sin proyectos todavía</div>';
+      }).join(''):emptyRows('Proyectos');
       return;
     }
 
@@ -72,7 +89,7 @@ export function createSuggestions({$, $$, esc, getDashboard}){
       '<p>'+esc(n.necesidad||'Necesidad abierta')+'</p>'+
       '<div class="chips">'+[n.prioridad,n.estado].filter(Boolean).map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+'</div></div>'+
       '<span class="row-arrow">›</span></article>'
-    ).join(''):'<div class="empty-mini">Sin necesidades todavía</div>';
+    ).join(''):emptyRows('Necesidades');
   }
 
   function init(){
