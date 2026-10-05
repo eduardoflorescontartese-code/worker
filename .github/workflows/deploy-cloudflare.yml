@@ -24,3 +24,20 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           command: deploy
+
+      - name: Verificar MESA publicada
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://worker.eduardo-flores-contartese.workers.dev"
+          HEALTH="$(curl -fsS --retry 5 --retry-delay 2 "$BASE/api/health")"
+          STATS="$(curl -fsS --retry 5 --retry-delay 2 "$BASE/api/public/stats")"
+          node -e '
+            const h=JSON.parse(process.argv[1]);
+            const s=JSON.parse(process.argv[2]);
+            if(!h.ok) throw new Error("health no OK");
+            if(h.storage!=="d1") throw new Error("storage no es D1: "+h.storage);
+            if(Number(s.personas)<16) throw new Error("faltan personas: "+s.personas);
+            if(Number(s.proyectos)<7) throw new Error("faltan proyectos: "+s.proyectos);
+            console.log("MESA OK:", JSON.stringify({storage:h.storage,personas:s.personas,proyectos:s.proyectos}));
+          ' "$HEALTH" "$STATS"
