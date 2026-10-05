@@ -3,20 +3,24 @@ import { ensureStore, listRows, appendRecord, updateRecord } from './store.js';
 import { buildMatches } from './matching.js';
 import { createPublicApi } from './public.js';
 import { createMatchingService } from './matching-service.js';
-import { applySecurityHeaders, preflightResponse, guardRequest, readJsonLimited, bounded, constantTimeEqual, requestId } from './security.js';
-import { edgeCacheMatch, edgeCachePut, invalidatePublicEdgeCache } from './edge-cache.js';
 
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
 const now = () => new Date().toISOString();
 
+function cors(env, req){
+  const origin = req.headers.get('origin');
+  const allowed = env.ALLOWED_ORIGIN || '*';
+  return {'access-control-allow-origin': allowed==='*' ? '*' : (origin===allowed ? origin : allowed),'access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'GET,POST,PUT,DELETE,OPTIONS','vary':'Origin'};
+}
+const ADMIN_FALLBACK_HASH='820c59c46d80d7da228a6346a96d36a6e22beda13750d968ad7ce9a4aabf1f51';
 async function sha256Hex(value){ const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||''))); return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
 async function authorized(env, req){
-  const secret=String(env.MESA_ADMIN_TOKEN||'');
-  if(secret.length<32)return false;
   const h=req.headers.get('authorization')||'';
-  if(!h.startsWith('Bearer '))return false;
+  if(env.MESA_ADMIN_TOKEN && h===`Bearer ${env.MESA_ADMIN_TOKEN}`) return true;
+  if(!h.startsWith('Bearer ')) return false;
   const token=h.slice(7).trim();
-  return constantTimeEqual(token,secret);
+  if(!token) return false;
+  return (await sha256Hex(token))===ADMIN_FALLBACK_HASH;
 }
 function cleanRow(o){ const x={...o}; delete x.__row; return x; }
 function deleted(v){ return v===true || ['true','1','sí','si'].includes(String(v).toLowerCase()); }
@@ -58,14 +62,14 @@ async function crud(env, req, entity, id){
   }
   if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
   if(req.method==='POST'){
-    const body=validateRecord(entity,await readJsonLimited(req)); const rows=await listRows(env,cfg); const ts=now();
+    const body=validateRecord(entity,await req.json()); const rows=await listRows(env,cfg); const ts=now();
     const rec={...body,id:body.id||nextId(rows,cfg.prefix),fecha_actualizacion:ts,origen_informacion:body.origen_informacion||'carga manual',eliminado:false};
     if(entity==='personas'&&!rec.fecha_incorporacion) rec.fecha_incorporacion=ts;
     await appendRecord(env,cfg,rec); await audit(env,entity,rec.id,'crear',rec.origen_informacion); return json(rec,201);
   }
   const current=await findById(env,entity,id); if(!current) return json({error:'No encontrado'},404);
   if(req.method==='PUT'){
-    const patch=validateRecord(entity,await readJsonLimited(req),{partial:true}); const rec={...cleanRow(current),...patch,id:current.id,fecha_actualizacion:now()};
+    const patch=validateRecord(entity,await req.json(),{partial:true}); const rec={...cleanRow(current),...patch,id:current.id,fecha_actualizacion:now()};
     await updateRecord(env,cfg,current.__row,rec); await audit(env,entity,id,'editar',patch.origen_informacion||rec.origen_informacion); return json(rec);
   }
   if(req.method==='DELETE'){
@@ -75,11 +79,10 @@ async function crud(env, req, entity, id){
 }
 
 async function selfSave(env, req){
-  const body=await readJsonLimited(req,32*1024);
-  if(bounded(body.website,200)) return json({ok:true});
-  const email=bounded(body.email,254).toLowerCase();
-  const nombre=bounded(body.nombre_completo,120);
-  const editToken=bounded(body.edit_token,256);
+  const body=await req.json();
+  const email=String(body.email||'').trim().toLowerCase();
+  const nombre=String(body.nombre_completo||'').trim();
+  const editToken=String(body.edit_token||'').trim();
   if(!nombre) return json({error:'El nombre es obligatorio'},400);
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({error:'Ingresá un correo válido'},400);
   if(editToken.length<20) return json({error:'Falta tu enlace personal de edición'},403);
@@ -98,11 +101,11 @@ async function selfSave(env, req){
     nombre_completo:nombre,
     email,
     self_edit_hash:current?.self_edit_hash||tokenHash,
-    profesion:bounded(body.profesion,160),
-    especialidad:bounded(body.especialidad,160),
-    puede_aportar:bounded(body.puede_aportar,3000),
-    busca:bounded(body.busca,3000),
-    tiene_proyecto_propio:bounded(body.proyecto,200) ? 'Sí — '+bounded(body.proyecto,200) : (current?.tiene_proyecto_propio||''),
+    profesion:String(body.profesion||'').trim(),
+    especialidad:String(body.especialidad||'').trim(),
+    puede_aportar:String(body.puede_aportar||'').trim(),
+    busca:String(body.busca||'').trim(),
+    tiene_proyecto_propio:String(body.proyecto||'').trim() ? 'Sí — '+String(body.proyecto).trim() : (current?.tiene_proyecto_propio||''),
     estado:'Activo',
     fecha_actualizacion:ts,
     origen_informacion:'autocarga web'
@@ -119,7 +122,7 @@ async function selfSave(env, req){
     await audit(env,'personas',person.id,'autocarga/crear','autocarga web');
   }
 
-  const proyecto=bounded(body.proyecto,200);
+  const proyecto=String(body.proyecto||'').trim();
   if(proyecto){
     const pcfg=ENTITY_CONFIG.proyectos;
     const prows=await listRows(env,pcfg);
@@ -128,9 +131,9 @@ async function selfSave(env, req){
       nombre:proyecto,
       creador_id:person.id,
       responsables:person.id,
-      descripcion:bounded(body.descripcion_proyecto,5000),
-      sector:bounded(body.sector,160),
-      etapa:bounded(body.etapa,120)||existing?.etapa||'Por determinar',
+      descripcion:String(body.descripcion_proyecto||'').trim(),
+      sector:String(body.sector||'').trim(),
+      etapa:String(body.etapa||'').trim()||existing?.etapa||'Por determinar',
       estado:'Activo',
       fecha_actualizacion:ts,
       origen_informacion:'autocarga web',
@@ -202,89 +205,36 @@ async function uploadDocument(env, req){
   return json(rec,201);
 }
 
-export default { async fetch(req, env, ctx){
-  const rid=requestId(req);
-  const preflight=preflightResponse(env,req);
-  if(preflight)return preflight;
-
-  let path='/';
+export default { async fetch(req, env){
+  const h=cors(env,req); if(req.method==='OPTIONS') return new Response(null,{status:204,headers:h});
   try{
-    const url=new URL(req.url);
-    path=url.pathname.replace(/\/+$/,'')||'/';
-
-    const guarded=await guardRequest(env,req,path);
-    if(guarded)return applySecurityHeaders(guarded,req,env,rid);
-
-    if(!path.startsWith('/api/')&&env.ASSETS){
-      const asset=await env.ASSETS.fetch(req);
-      return applySecurityHeaders(asset,req,env,rid);
-    }
-
-    let response;
-
-    if(path==='/api/health'){
-      let storeReady=true;
-      try{ await ensureStore(env); }catch{ storeReady=false; }
-      response=json({
+    const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
+    if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
+    if(path==='/api/health') {
+      let storeReady=true, storeError='';
+      try{ await ensureStore(env); }catch(e){ storeReady=false; storeError=e?.message||String(e); }
+      return json({
         ok:storeReady,
         service:'MESA API',
         storage:'d1',
         storageConfigured:Boolean(env.DB),
-        documentsStorage:env.DOCS?'r2':'not-configured'
-      },storeReady?200:503);
-      return applySecurityHeaders(response,req,env,rid);
+        documentsStorage:env.DOCS?'r2':'not-configured',
+        storeError
+      },200,h);
     }
-
     await ensureStore(env);
-
-    const cached=await edgeCacheMatch(req,path);
-    if(cached)return applySecurityHeaders(cached,req,env,rid);
-
-    if(path==='/api/public/stats'&&req.method==='GET'){
-      response=await publicApi.stats(env);
-    }else if(path==='/api/public/dashboard'&&req.method==='GET'){
-      response=await publicApi.dashboard(env);
-    }else if(path==='/api/public/pending-ids'&&req.method==='GET'){
-      if(!(await authorized(env,req))) response=json({error:'No autorizado'},401);
-      else response=await publicApi.pendingIds(env);
-    }else if(path==='/api/self/persona'&&req.method==='POST'){
-      response=await selfSave(env,req);
-    }else if(path==='/api/admin/bootstrap'&&req.method==='POST'){
-      response=await bootstrap(env,req);
-    }else if(path==='/api/matches/recompute'&&req.method==='POST'){
-      response=await matchingService.recomputeMatches(env,req);
-    }else if(path==='/api/search'&&req.method==='GET'){
-      const q=bounded(url.searchParams.get('q'),120);
-      response=await publicApi.search(env,q);
-    }else if(path==='/api/documentos/upload'&&req.method==='POST'){
-      response=await uploadDocument(env,req);
-    }else{
-      const m=path.match(/^\/api\/([a-záéíóúñ]+)(?:\/([^/]+))?$/i);
-      if(m){
-        const entity=normalizeEntityName(m[1]);
-        if(!entity||!ENTITY_CONFIG[entity]) response=json({error:'Ruta no encontrada'},404);
-        else response=await crud(env,req,entity,m[2]);
-      }else{
-        response=json({error:'Ruta no encontrada'},404);
-      }
-    }
-
-    if(req.method==='GET'){
-      await edgeCachePut(req,path,response,ctx);
-    }else if(response?.ok){
-      await invalidatePublicEdgeCache(req,ctx);
-    }
-
-    return applySecurityHeaders(response,req,env,rid);
-  }catch(e){
-    const status=Number(e?.status)||500;
-    console.error('MESA request failed',{request_id:rid,path,status,message:e?.message||String(e)});
-    const safeMessage=status<500?(e?.message||'Solicitud inválida'):'Error interno';
-    return applySecurityHeaders(
-      json({error:safeMessage,request_id:rid},status),
-      req,
-      env,
-      rid
-    );
-  }
+    if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicApi.stats(env); return withHeaders(r,h); }
+    if(path==='/api/public/dashboard'&&req.method==='GET') { const r=await publicApi.dashboard(env); return withHeaders(r,h); }
+    if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicApi.pendingIds(env); return withHeaders(r,h); }
+    if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
+    if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
+    if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await matchingService.recomputeMatches(env,req); return withHeaders(r,h); }
+    if(path==='/api/search'&&req.method==='GET') { const r=await publicApi.search(env,url.searchParams.get('q')); return withHeaders(r,h); }
+    if(path==='/api/documentos/upload'&&req.method==='POST') { const r=await uploadDocument(env,req); return withHeaders(r,h); }
+    const m=path.match(/^\/api\/([a-záéíóúñ]+)(?:\/([^/]+))?$/i);
+    if(m){ const entity=normalizeEntityName(m[1]); const r=await crud(env,req,entity,m[2]); return withHeaders(r,h); }
+    return json({error:'Ruta no encontrada'},404,h);
+  }catch(e){ return json({error:e.message||String(e)},500,h); }
 }};
+
+function withHeaders(res, headers){ const out=new Response(res.body,res); for(const [k,v] of Object.entries(headers)) out.headers.set(k,v); return out; }
