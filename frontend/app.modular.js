@@ -175,9 +175,5 @@ initSearch();
 initPublicControls();
 
 const hp=hashParams();
-if(hp.admin){
-  admin.activate(hp.admin);
-  history.replaceState(null,'',location.pathname+location.search);
-}else{
-  loadDashboard();
-}
+if(hp.admin)admin.activate(hp.admin);
+else loadDashboard();
