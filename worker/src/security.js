@@ -59,6 +59,9 @@ export function applySecurityHeaders(response,req,env,id=requestId(req)){
     "frame-ancestors 'none'",
     "upgrade-insecure-requests"
   ].join('; '));
+  out.headers.set('cross-origin-opener-policy','same-origin');
+  out.headers.set('cross-origin-resource-policy','same-origin');
+  out.headers.set('x-permitted-cross-domain-policies','none');
   out.headers.set('x-request-id',id);
 
   for(const [k,v] of Object.entries(corsHeaders(env,req)))out.headers.set(k,v);
