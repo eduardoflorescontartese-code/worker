@@ -29,7 +29,7 @@ export const ENTITY_CONFIG = {
   },
   documentos: {
     sheet: 'Documentos', prefix: 'D',
-    headers: ['id','persona_id','proyecto_id','nombre','tipo','drive_file_id','url','fecha','origen','resumen','estado_analisis','fecha_actualizacion','origen_informacion','origen_referencia','eliminado']
+    headers: ['id','persona_id','proyecto_id','nombre','tipo','storage_key','url','fecha','origen','resumen','estado_analisis','fecha_actualizacion','origen_informacion','origen_referencia','eliminado']
   },
   auditoria: {
     sheet: 'Auditoria', prefix: 'A',
