@@ -492,3 +492,85 @@ button{cursor:pointer}
   white-space:nowrap!important;
   border:0!important
 }
+
+
+/* Corrección de fidelidad visual — referencia MESA */
+html,body{overflow-x:hidden}
+.workspace{min-width:0;overflow-x:hidden}
+.dashboard{
+  width:100%;
+  grid-template-columns:minmax(265px,.92fr) minmax(0,1.9fr) minmax(285px,.98fr);
+  gap:10px;
+  padding:12px;
+}
+.suggestions-column,.matching-panel,.recommendations{min-width:0}
+.suggestions-column,.matching-panel,.recommendations{
+  min-height:calc(100vh - 82px);
+}
+.suggestion-list{min-height:0}
+.suggestion-title h2{font-size:18px}
+.suggestion-tab{font-size:10px}
+.suggestion-tab span{font-size:9px}
+.suggestion-row{min-height:78px;padding:11px 12px}
+.suggestion-row strong{font-size:11.5px}
+.suggestion-row p{font-size:9px}
+.chip,.entity-chip{font-size:7.5px}
+.matching-copy h1{font-size:26px}
+.matching-copy span{font-size:10px;line-height:1.4}
+.matching-controls label{font-size:7.5px}
+.matching-controls select{font-size:8.5px}
+.recommendations-head h2{font-size:16px}
+.recommendations-head p{font-size:8.5px}
+.rec-head strong{font-size:11px}
+.rec-head small{font-size:8px}
+.rec-score{font-size:10.5px}
+.rec-action{font-size:8.5px}
+.rec-bullets div{font-size:7.5px}
+.nav-item{font-size:12.5px}
+.side-stat small{font-size:8.5px}
+
+.empty-suggestion{opacity:.62}
+.empty-suggestion .empty-dot{
+  background:#eef3f8;color:#9aabba;border:1px solid #e0e8f0
+}
+.empty-chip{
+  display:inline-block;min-width:44px;background:#eef2f6!important;color:transparent!important
+}
+.empty-match-card{opacity:.78}
+.empty-match-card .empty-entity{
+  background:#eef3f8;color:#9aabba;border:1px solid #e0e8f0
+}
+.empty-match-card .factor-bar i{width:0!important}
+.empty-gauge{
+  --gauge-pct:0%!important;
+  --score-color:#dce4ec!important;
+}
+.empty-label{background:#eef3f8;color:#7c8a99}
+.empty-explanation{background:#f7fafc;color:#7f8c9d}
+
+@media(max-width:1400px) and (min-width:1001px){
+  .app-shell{grid-template-columns:180px minmax(0,1fr)}
+  .dashboard{
+    grid-template-columns:minmax(250px,.88fr) minmax(0,1.82fr) minmax(270px,.95fr);
+    gap:8px;
+    padding:10px;
+  }
+  .matching-head{gap:8px;padding:12px}
+  .matching-copy h1{font-size:24px}
+  .matching-controls{gap:4px}
+  .matching-controls label{min-width:84px;padding:5px 6px}
+  .recommendations{padding:10px}
+  .recommendation-card{padding:9px}
+  .suggestion-row{min-height:74px}
+}
+
+@media(max-width:1180px){
+  .dashboard{grid-template-columns:260px minmax(0,1fr)}
+  .recommendations{
+    grid-column:1/-1;
+    display:grid;
+    grid-template-columns:1fr 2.3fr;
+    min-height:0
+  }
+  .recommendation-list{grid-template-columns:repeat(5,minmax(0,1fr))}
+}
