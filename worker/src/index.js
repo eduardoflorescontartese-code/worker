@@ -232,13 +232,7 @@ export default { async fetch(req, env, ctx){
         storageConfigured:Boolean(env.DB),
         documentsStorage:env.DOCS?'r2':'not-configured'
       },storeReady?200:503);
-      if(req.method==='GET'){
-      await edgeCachePut(req,path,response,ctx);
-    }else if(response?.ok){
-      await invalidatePublicEdgeCache(req,ctx);
-    }
-
-    return applySecurityHeaders(response,req,env,rid);
+      return applySecurityHeaders(response,req,env,rid);
     }
 
     await ensureStore(env);
@@ -273,6 +267,12 @@ export default { async fetch(req, env, ctx){
       }else{
         response=json({error:'Ruta no encontrada'},404);
       }
+    }
+
+    if(req.method==='GET'){
+      await edgeCachePut(req,path,response,ctx);
+    }else if(response?.ok){
+      await invalidatePublicEdgeCache(req,ctx);
     }
 
     return applySecurityHeaders(response,req,env,rid);
