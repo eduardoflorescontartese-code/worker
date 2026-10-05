@@ -8,11 +8,6 @@ jobs:
   auditar:
     runs-on: ubuntu-latest
     steps:
-      - name: Obtener código
-        uses: actions/checkout@v4
-
-      - name: Consultar pendientes en D1
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      - name: Consultar pendientes
         run: |
-          npx --yes wrangler@4 d1 execute singulara-business-db --remote --command "SELECT id, COALESCE(json_extract(data,'$.origen_informacion'),'') AS origen FROM mesa_personas WHERE deleted=0 ORDER BY id;" --json
+          curl -fsS --retry 5 --retry-delay 2 "https://worker.eduardo-flores-contartese.workers.dev/api/public/pending-ids"
