@@ -28,7 +28,75 @@ async function dashboard(){ const ents=['personas','proyectos','capacidades','ne
 function card(k,v){return `<div class="card"><div class="muted">${esc(k)}</div><div class="metric">${esc(v)}</div></div>`}
 function stageList(items){ const m={}; for(const p of items)m[p.etapa||'Sin confirmar']=(m[p.etapa||'Sin confirmar']||0)+1; return Object.entries(m).map(([k,v])=>`<p><span class="badge">${esc(k)}</span> <strong>${v}</strong></p>`).join('')||'<p class="muted">Sin información todavía.</p>'; }
 
-async function entityView(entity){ const rows=await api.list(entity); const cols=columns[entity]||Object.keys(rows[0]||{}).slice(0,8); app.innerHTML=`<div class="content"><div class="toolbar"><div><strong>${rows.length}</strong> registros</div><div>${entity==='documentos'?'<button id="upload">Subir documento</button>':''}${formFields[entity]?` <button id="new">Nuevo</button>`:''}</div></div>${table(rows,cols,entity)}</div>`; if(document.querySelector('#new'))document.querySelector('#new').onclick=()=>openForm(entity); if(document.querySelector('#upload'))document.querySelector('#upload').onclick=openUpload; document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openForm(entity,rows.find(r=>r.id===b.dataset.edit))); document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(confirm(`Dar de baja lógica ${b.dataset.del}?`)){await api.remove(entity,b.dataset.del);go(entity)}}); }
+async function entityView(entity){
+  const rows=await api.list(entity);
+  const cols=columns[entity]||Object.keys(rows[0]||{}).slice(0,8);
+  const hasPersonFilters=entity==='personas';
+  app.innerHTML=`<div class="content">
+    <div class="toolbar">
+      <div><strong id="recordCount">${rows.length}</strong> registros</div>
+      <div>${entity==='documentos'?'<button id="upload">Subir documento</button>':''}${formFields[entity]?` <button id="new">Nuevo</button>`:''}</div>
+    </div>
+    ${hasPersonFilters?personFilters(rows):''}
+    <div id="entityTable">${table(rows,cols,entity)}</div>
+  </div>`;
+
+  if(hasPersonFilters){
+    const controls=[...document.querySelectorAll('[data-person-filter]')];
+    const apply=()=>{
+      const q=(document.querySelector('#personFilterText')?.value||'').trim().toLowerCase();
+      const profession=(document.querySelector('#personFilterProfession')?.value||'').toLowerCase();
+      const department=(document.querySelector('#personFilterDepartment')?.value||'').toLowerCase();
+      const seniority=(document.querySelector('#personFilterSeniority')?.value||'').toLowerCase();
+      const state=(document.querySelector('#personFilterState')?.value||'').toLowerCase();
+      const tech=(document.querySelector('#personFilterTech')?.value||'').trim().toLowerCase();
+      const filtered=rows.filter(r=>{
+        const haystack=[r.nombre_completo,r.email,r.telefono,r.ciudad,r.departamento,r.pais,r.profesion,r.especialidad,r.experiencia,r.seniority,r.sectores,r.tecnologias,r.intereses,r.puede_aportar,r.busca,r.estado].join(' ').toLowerCase();
+        return (!q||haystack.includes(q))
+          &&(!profession||String(r.profesion||'').toLowerCase()===profession)
+          &&(!department||String(r.departamento||'').toLowerCase()===department)
+          &&(!seniority||String(r.seniority||'').toLowerCase()===seniority)
+          &&(!state||String(r.estado||'').toLowerCase()===state)
+          &&(!tech||String(r.tecnologias||'').toLowerCase().includes(tech));
+      });
+      document.querySelector('#recordCount').textContent=filtered.length;
+      document.querySelector('#entityTable').innerHTML=table(filtered,cols,entity);
+      bindRowActions(entity,rows);
+    };
+    controls.forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',apply));
+    document.querySelector('#clearPersonFilters').onclick=()=>{
+      controls.forEach(el=>{el.value='';});
+      apply();
+    };
+  }
+
+  if(document.querySelector('#new'))document.querySelector('#new').onclick=()=>openForm(entity);
+  if(document.querySelector('#upload'))document.querySelector('#upload').onclick=openUpload;
+  bindRowActions(entity,rows);
+}
+function bindRowActions(entity,rows){
+  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openForm(entity,rows.find(r=>r.id===b.dataset.edit)));
+  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(confirm(`Dar de baja lógica ${b.dataset.del}?`)){await api.remove(entity,b.dataset.del);go(entity)}});
+}
+function uniqueValues(rows,key){
+  return [...new Set(rows.map(r=>String(r[key]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+}
+function options(rows,key){
+  return uniqueValues(rows,key).map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+}
+function personFilters(rows){
+  return `<div class="card" style="margin:16px 0">
+    <div class="grid">
+      <div class="field"><label>Buscar persona</label><input id="personFilterText" data-person-filter placeholder="Nombre, especialidad, sector, ciudad…"></div>
+      <div class="field"><label>Profesión</label><select id="personFilterProfession" data-person-filter><option value="">Todas</option>${options(rows,'profesion')}</select></div>
+      <div class="field"><label>Departamento</label><select id="personFilterDepartment" data-person-filter><option value="">Todos</option>${options(rows,'departamento')}</select></div>
+      <div class="field"><label>Seniority</label><select id="personFilterSeniority" data-person-filter><option value="">Todos</option>${options(rows,'seniority')}</select></div>
+      <div class="field"><label>Estado</label><select id="personFilterState" data-person-filter><option value="">Todos</option>${options(rows,'estado')}</select></div>
+      <div class="field"><label>Tecnología</label><input id="personFilterTech" data-person-filter placeholder="React, hardware, Python…"></div>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="secondary" id="clearPersonFilters">Limpiar filtros</button></div>
+  </div>`;
+}
 function table(rows,cols,entity){ if(!rows.length)return '<div class="table-wrap"><div class="empty">Sin información todavía.</div></div>'; return `<div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}<th>Acciones</th></tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${c==='url'&&r[c]?`<a href="${esc(r[c])}" target="_blank">Abrir</a>`:esc(r[c])}</td>`).join('')}<td><div class="actions">${formFields[entity]?`<button class="secondary" data-edit="${esc(r.id)}">Editar</button>`:''}<button class="danger" data-del="${esc(r.id)}">Baja</button></div></td></tr>`).join('')}</tbody></table></div>`; }
 
 function openForm(entity,row={}){ const modal=document.querySelector('#modal'); document.querySelector('#modalTitle').textContent=`${row.id?'Editar':'Nuevo'} ${labels[entity]}`; document.querySelector('#modalBody').innerHTML=`<div class="grid">${formFields[entity].map(f=>field(f,row[f]??'')).join('')}</div>`; const form=document.querySelector('#modalForm'); form.onsubmit=async e=>{e.preventDefault(); if(e.submitter?.value==='cancel'){modal.close();return} const fd=new FormData(form); const data={}; for(const f of formFields[entity]) data[f]=fd.get(f)||''; try{ row.id?await api.update(entity,row.id,data):await api.create(entity,data); modal.close(); go(entity); }catch(err){alert(err.message)} }; modal.showModal(); }
