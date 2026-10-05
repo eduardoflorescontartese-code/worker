@@ -4,6 +4,8 @@ compatibility_date = "2026-10-04"
 
 [vars]
 ALLOWED_ORIGIN = "*"
+GOOGLE_SPREADSHEET_ID = "1VCMshFeOAwFyzNMSRC3n60cB4fVelrs3sOI5dNthyDA"
+GOOGLE_DRIVE_FOLDER_ID = "1u2jIXHyO5qfyVGDDhNJe44oz5QipRq8g"
 
 [assets]
 directory = "./frontend"
@@ -11,6 +13,9 @@ binding = "ASSETS"
 
 # Configure secrets with Cloudflare (never commit real values):
 # MESA_ADMIN_TOKEN
+# GOOGLE_CLIENT_ID
+# GOOGLE_CLIENT_SECRET
+# GOOGLE_REFRESH_TOKEN
 
 [[d1_databases]]
 binding = "DB"
