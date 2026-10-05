@@ -8,10 +8,7 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
-      <strong>MESA</strong>
-      <span>Personas y proyectos</span>
-    </div>
+    <div class="brand"><strong>MESA</strong><span>Personas y proyectos</span></div>
     <input id="search" type="search" placeholder="Buscar persona o proyecto">
   </header>
 
@@ -20,37 +17,51 @@
       <div>
         <p class="eyebrow">MESA INDEPENDIENTE DE PROYECTOS</p>
         <h1>Personas</h1>
-        <p>Quién está participando, qué proyecto tiene y qué necesita para avanzar.</p>
+        <p>Una red para conectar personas, proyectos, capacidades y necesidades concretas.</p>
       </div>
       <div class="counter"><strong id="count">0</strong><span>personas</span></div>
     </section>
 
-    <section class="public-note">
-      <strong>¿Querés sumarte o corregir tu ficha?</strong>
-      <p>Respondé al correo de MESA con tu área, proyecto, estado actual y qué necesitás para avanzar. La carga y edición se hacen desde coordinación.</p>
-    </section>
-
-    <section id="adminPanel" class="admin-panel" hidden>
-      <form id="personForm" class="card intake">
-        <h2>Agregar persona</h2>
-        <label>Nombre
-          <input id="name" name="name" autocomplete="name" required>
+    <section class="layout">
+      <form id="selfForm" class="card intake">
+        <h2>Completar o actualizar mi ficha</h2>
+        <p class="hint top-hint">Usá siempre el mismo correo. Si ya estás en MESA, tus datos se actualizan; si sos nuevo, se crea tu ficha.</p>
+        <label>Nombre y apellido
+          <input id="name" autocomplete="name" required>
         </label>
         <label>Correo electrónico
-          <input id="email" name="email" type="email" autocomplete="email" required>
+          <input id="email" type="email" autocomplete="email" required>
+        </label>
+        <label>Área / profesión
+          <input id="profession" placeholder="Ej.: agronomía, software, diseño">
+        </label>
+        <label>Especialidad
+          <input id="specialty" placeholder="Tu foco principal">
         </label>
         <label>Proyecto o idea
-          <textarea id="project" name="project" placeholder="¿Qué proyecto tiene o qué quiere desarrollar?"></textarea>
+          <input id="project" placeholder="Dejalo vacío si querés colaborar sin proyecto propio">
         </label>
-        <button type="submit">Guardar</button>
+        <label>Etapa del proyecto
+          <input id="stage" placeholder="Idea, prototipo, piloto, ventas...">
+        </label>
+        <label>¿Qué necesitás para avanzar?
+          <textarea id="needs" placeholder="Personas, tecnología, financiación, contactos, validación, producción, comercialización..."></textarea>
+        </label>
+        <label>¿Qué podés aportar?
+          <textarea id="contribute" placeholder="Experiencia, conocimientos, contactos, tecnología, gestión..."></textarea>
+        </label>
+        <button type="submit">Guardar mi información</button>
         <p id="formStatus" class="status" aria-live="polite"></p>
+        <p class="privacy">Tu correo y los datos internos no se muestran públicamente. La coordinación general queda reservada al administrador de MESA.</p>
       </form>
-    </section>
 
-    <section class="people">
-      <div id="peopleList" class="people-list">
-        <div class="empty">Cargando personas…</div>
-      </div>
+      <section class="people">
+        <div class="public-note">
+          <strong>Vista pública limitada</strong>
+          <p>Se muestran únicamente nombre, área y proyecto. Los datos de contacto y la información interna quedan fuera de esta vista.</p>
+        </div>
+        <div id="peopleList" class="people-list"><div class="empty">Cargando personas…</div></div>
+      </section>
     </section>
   </main>
 
