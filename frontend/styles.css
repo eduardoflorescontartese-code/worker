@@ -13,10 +13,7 @@ button{cursor:pointer}
 
 .app-shell{min-height:100vh;display:grid;grid-template-columns:180px minmax(0,1fr)}
 .sidebar{
-  background:
-    radial-gradient(120% 42% at 108% 84%,rgba(16,96,220,.30) 0 34%,transparent 35%),
-    radial-gradient(115% 46% at -8% 96%,rgba(8,72,168,.22) 0 38%,transparent 39%),
-    linear-gradient(180deg,#06203f 0%,#071a35 100%);
+  background:linear-gradient(180deg,#06203f 0%,#071a35 100%);
   color:#fff;padding:18px 10px 14px;display:flex;flex-direction:column;
   position:sticky;top:0;height:100vh;overflow:hidden
 }
@@ -31,8 +28,8 @@ button{cursor:pointer}
 .nav-item span{width:18px;text-align:center;font-size:17px}
 .nav-item:hover{background:rgba(255,255,255,.07)}
 .nav-item.active{
-  background:#0d63ea;
-  color:#fff;box-shadow:0 5px 16px rgba(0,89,218,.22)
+  background:linear-gradient(90deg,#0757d5,#0f6bf4);
+  color:#fff;box-shadow:0 8px 22px rgba(0,89,218,.28)
 }
 .sidebar-impact{
   margin-top:auto;border:1px solid rgba(255,255,255,.1);border-radius:10px;
@@ -78,8 +75,7 @@ button{cursor:pointer}
 .chevron{font-size:16px}
 
 .dashboard{
-  padding:0 8px 10px;display:grid;
-  grid-template-columns:minmax(250px,310px) minmax(480px,1fr) minmax(280px,320px);
+  padding:12px;display:grid;grid-template-columns:310px minmax(540px,1fr) 320px;
   gap:10px;align-items:start
 }
 .panel{
@@ -483,16 +479,4 @@ button{cursor:pointer}
   .factor-zone{grid-template-columns:1fr}
   .score-legend{grid-template-columns:repeat(4,minmax(0,1fr))}
   .factor-line{grid-template-columns:105px minmax(70px,1fr) 28px}
-}
-
-.security-honeypot{
-  position:absolute!important;
-  width:1px!important;
-  height:1px!important;
-  padding:0!important;
-  margin:-1px!important;
-  overflow:hidden!important;
-  clip:rect(0,0,0,0)!important;
-  white-space:nowrap!important;
-  border:0!important
 }
