@@ -83,6 +83,7 @@ const INITIAL_PEOPLE = [
     nombre:'Valentina',
     apellido:'Archetti',
     nombre_completo:'Valentina Archetti',
+    email:'valentinaarchetti7@gmail.com',
     profesion:'Construcción',
     especialidad:'Administración, contabilidad y dirección de obra',
     capacidades_no_tecnicas_resumen:'Construcción; administración; contabilidad; dirección de obra',
@@ -103,6 +104,7 @@ const INITIAL_PEOPLE = [
     nombre:'Aníbal',
     apellido:'de Miñaur',
     nombre_completo:'Aníbal de Miñaur',
+    email:'anibal0810@gmail.com',
     observaciones:'Manifestó interés en incorporarse a la Mesa.',
     preguntas_pendientes:'Profesión, experiencia, capacidades, proyecto, etapa, necesidades, disponibilidad y contacto.',
     estado:'Activo',
@@ -115,6 +117,7 @@ const INITIAL_PEOPLE = [
     nombre:'Natalia',
     apellido:'Pérez',
     nombre_completo:'Natalia Pérez',
+    email:'nataliaperez.turismo@gmail.com',
     observaciones:'Manifestó interés en participar.',
     preguntas_pendientes:'Profesión, experiencia, capacidades, proyecto, necesidades y disponibilidad.',
     estado:'Activo',
@@ -127,6 +130,7 @@ const INITIAL_PEOPLE = [
     nombre:'Mario',
     apellido:'Duarte',
     nombre_completo:'Mario Duarte',
+    email:'marioadsanchez@gmail.com',
     observaciones:'Manifestó interés en participar.',
     preguntas_pendientes:'Profesión, experiencia, capacidades, proyecto, necesidades y disponibilidad.',
     estado:'Activo',
@@ -139,6 +143,7 @@ const INITIAL_PEOPLE = [
     nombre:'Augusto',
     apellido:'Preliasco',
     nombre_completo:'Augusto Preliasco',
+    email:'preliasco@gmail.com',
     observaciones:'Manifestó interés en participar.',
     preguntas_pendientes:'Profesión, experiencia, capacidades, proyecto, necesidades y disponibilidad.',
     estado:'Activo',
@@ -151,11 +156,108 @@ const INITIAL_PEOPLE = [
     nombre:'Marcio',
     apellido:'Umpierrez',
     nombre_completo:'Marcio Umpierrez',
+    email:'marcioplay3d@gmail.com',
     observaciones:'Manifestó interés en participar.',
     preguntas_pendientes:'Profesión, experiencia, capacidades, proyecto, necesidades y disponibilidad.',
     estado:'Activo',
     origen_informacion:'correo',
     origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'P-0008',
+    nombre:'Adriana Carla',
+    apellido:'Dias Trevisan',
+    nombre_completo:'Adriana Carla Dias Trevisan',
+    email:'adriana-trevisan@uergs.edu.br',
+    profesion:'Agrónoma / docente universitaria',
+    especialidad:'Plantas nativas y desarrollo agropecuario',
+    puede_aportar:'Agronomía, investigación, docencia y conocimiento de plantas nativas',
+    busca:'Apoyos para avanzar FitoPampa; etapa y necesidad principal pendientes de confirmar',
+    tiene_proyecto_propio:'Sí — FitoPampa',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'P-0009',
+    nombre:'Arturo',
+    apellido:'Hernández',
+    nombre_completo:'Arturo Hernández',
+    email:'arturohernandez8752@gmail.com',
+    profesion:'Ingeniero químico / desarrollador backend',
+    especialidad:'Backend, Java, APIs REST y testing con JavaScript',
+    puede_aportar:'Desarrollo backend, Java, APIs REST, testing y formación técnica',
+    busca:'Colaborar en proyectos donde su perfil técnico pueda aportar',
+    tiene_proyecto_propio:'No informado',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'P-0010',
+    nombre:'Santiago',
+    apellido:'Beraza',
+    nombre_completo:'Santiago Beraza',
+    email:'berazasantiago89@gmail.com',
+    profesion:'Ingeniero agrónomo',
+    especialidad:'Agroecología y bioinsumos',
+    puede_aportar:'Agronomía, agroecología y bioinsumos',
+    busca:'Apoyo para hacer crecer el biopellet; necesidad concreta pendiente de confirmar',
+    tiene_proyecto_propio:'Sí — biopellet regenerador de suelos',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'P-0011',
+    nombre:'Karen',
+    apellido:'Silveira',
+    nombre_completo:'Karen Silveira',
+    email:'karensilveira3546@gmail.com',
+    profesion:'Técnica en Artes Plásticas y Visuales',
+    especialidad:'Economía circular y reutilización de vidrio',
+    puede_aportar:'Diseño, economía circular, reutilización de vidrio y desarrollo de productos',
+    busca:'Apoyo para escalar y desarrollar Eco Glass / proyecto PAIE; necesidad prioritaria pendiente de confirmar',
+    tiene_proyecto_propio:'Sí — Eco Glass / proyecto PAIE',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'P-0012',
+    nombre:'Otto Nelson',
+    apellido:'Caetano Rodriguez',
+    nombre_completo:'Otto Nelson Caetano Rodriguez',
+    email:'ottocaetano@gmail.com',
+    profesion:'Programador senior',
+    especialidad:'Desarrollo de software',
+    puede_aportar:'Programación senior y desarrollo técnico',
+    busca:'Necesidades de SintegraAi pendientes de confirmar',
+    tiene_proyecto_propio:'Sí — SintegraAi',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'P-0013',
+    nombre:'Julio',
+    apellido:'Friedrich',
+    nombre_completo:'Julio Friedrich',
+    email:'jfriedrich405@gmail.com',
+    profesion:'Alta Cocina — UTEC Paysandú',
+    especialidad:'Producción y elaboración de alimentos',
+    puede_aportar:'Alta cocina, producción y elaboración de alimentos',
+    busca:'Apoyo para hacer crecer emprendimiento de productos a base de chayote/papa del aire; necesidad concreta pendiente',
+    tiene_proyecto_propio:'Sí — productos elaborados a base de chayote o papa del aire',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Correo directo 2026-10-05',
     eliminado:false
   }
 ];
@@ -194,6 +296,71 @@ const INITIAL_PROJECTS = [
     origen_informacion:'correo',
     origen_referencia:'Convocatoria UTEC / correo 2026-10-04',
     eliminado:false
+  },
+  {
+    id:'PR-0003',
+    nombre:'FitoPampa',
+    creador_id:'P-0008',
+    responsables:'P-0008',
+    descripcion:'Desarrollo vinculado a plantas nativas con tres productos orientados al sector agropecuario.',
+    sector:'Agro / plantas nativas',
+    etapa:'Por determinar',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'PR-0004',
+    nombre:'Biopellet regenerador de suelos',
+    creador_id:'P-0010',
+    responsables:'P-0010',
+    descripcion:'Biopellet regenerador de suelos en el área de agroecología y bioinsumos.',
+    sector:'Agro / bioinsumos',
+    etapa:'Por determinar',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'PR-0005',
+    nombre:'Eco Glass / PAIE',
+    creador_id:'P-0011',
+    responsables:'P-0011',
+    descripcion:'Economía circular y desarrollo de piezas vítreas sinterizadas a partir de vidrio de un solo uso.',
+    sector:'Economía circular / materiales',
+    etapa:'Por determinar',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'PR-0006',
+    nombre:'SintegraAi',
+    creador_id:'P-0012',
+    responsables:'P-0012',
+    descripcion:'Proyecto de software/IA de Otto Caetano. Alcance pendiente de ampliar con su respuesta.',
+    sector:'Software / IA',
+    etapa:'Por determinar',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Convocatoria UTEC / correo 2026-10-05',
+    eliminado:false
+  },
+  {
+    id:'PR-0007',
+    nombre:'Emprendimiento de productos de chayote / papa del aire',
+    creador_id:'P-0013',
+    responsables:'P-0013',
+    descripcion:'Producción, elaboración y venta de productos elaborados a base de chayote o papa del aire.',
+    sector:'Alimentos / producción',
+    etapa:'En actividad — detalle pendiente',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Correo directo 2026-10-05',
+    eliminado:false
   }
 ];
 
@@ -201,9 +368,25 @@ async function seedRecord(env,cfg,rec){
   await ensureD1Table(env,cfg);
   const t=tableName(cfg);
   const ts=new Date().toISOString();
+  const found=await env.DB.prepare(`SELECT data FROM ${t} WHERE id=?`).bind(String(rec.id)).first();
+  if(found?.data){
+    let current={}; try{current=JSON.parse(found.data||'{}')}catch{}
+    let changed=false;
+    for(const [k,v] of Object.entries(rec)){
+      if((current[k]===undefined || current[k]===null || current[k]==='') && v!==undefined && v!==null && v!==''){
+        current[k]=v; changed=true;
+      }
+    }
+    if(changed){
+      current.fecha_actualizacion=ts;
+      await env.DB.prepare(`UPDATE ${t} SET data=?, deleted=?, updated_at=? WHERE id=?`)
+        .bind(JSON.stringify(current),current.eliminado?1:0,ts,String(rec.id)).run();
+    }
+    return;
+  }
   const full={...rec,fecha_actualizacion:rec.fecha_actualizacion||ts};
   if(cfg.sheet==='Personas' && !full.fecha_incorporacion) full.fecha_incorporacion=ts;
-  await env.DB.prepare(`INSERT OR IGNORE INTO ${t}(id,data,deleted,updated_at) VALUES(?,?,?,?)`)
+  await env.DB.prepare(`INSERT INTO ${t}(id,data,deleted,updated_at) VALUES(?,?,?,?)`)
     .bind(String(full.id),JSON.stringify(full),full.eliminado?1:0,full.fecha_actualizacion).run();
 }
 
