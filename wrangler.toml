@@ -10,13 +10,7 @@ directory = "./frontend"
 binding = "ASSETS"
 
 # Configure secrets with Cloudflare (never commit real values):
-# GOOGLE_CLIENT_ID
-# GOOGLE_CLIENT_SECRET
-# GOOGLE_REFRESH_TOKEN
-# GOOGLE_SPREADSHEET_ID
-# GOOGLE_DRIVE_FOLDER_ID
 # MESA_ADMIN_TOKEN
-
 
 [[d1_databases]]
 binding = "DB"
