@@ -4,6 +4,7 @@ import { buildMatches } from './matching.js';
 import { createPublicApi } from './public.js';
 import { createMatchingService } from './matching-service.js';
 import { applySecurityHeaders, preflightResponse, guardRequest, readJsonLimited, bounded, constantTimeEqual, requestId } from './security.js';
+import { edgeCacheMatch, edgeCachePut, invalidatePublicEdgeCache } from './edge-cache.js';
 
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
 const now = () => new Date().toISOString();
@@ -201,7 +202,7 @@ async function uploadDocument(env, req){
   return json(rec,201);
 }
 
-export default { async fetch(req, env){
+export default { async fetch(req, env, ctx){
   const rid=requestId(req);
   const preflight=preflightResponse(env,req);
   if(preflight)return preflight;
@@ -231,10 +232,19 @@ export default { async fetch(req, env){
         storageConfigured:Boolean(env.DB),
         documentsStorage:env.DOCS?'r2':'not-configured'
       },storeReady?200:503);
-      return applySecurityHeaders(response,req,env,rid);
+      if(req.method==='GET'){
+      await edgeCachePut(req,path,response,ctx);
+    }else if(response?.ok){
+      await invalidatePublicEdgeCache(req,ctx);
+    }
+
+    return applySecurityHeaders(response,req,env,rid);
     }
 
     await ensureStore(env);
+
+    const cached=await edgeCacheMatch(req,path);
+    if(cached)return applySecurityHeaders(cached,req,env,rid);
 
     if(path==='/api/public/stats'&&req.method==='GET'){
       response=await publicApi.stats(env);
