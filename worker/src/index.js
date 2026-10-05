@@ -167,7 +167,9 @@ async function selfSave(env, req){
       await audit(env,'proyectos',prec.id,'autocarga/crear','autocarga web');
     }
   }
-  return json({ok:true,persona:{id:person.id,nombre_completo:person.nombre_completo,estado:person.estado}});
+  let matchingResult={ok:true,created:0,verdes:0,amarillos:0};
+  try{ matchingResult=await recomputeMatchesCore(env); }catch{}
+  return json({ok:true,persona:{id:person.id,nombre_completo:person.nombre_completo,estado:person.estado},matching:matchingResult});
 }
 
 async function publicStats(env){
@@ -241,8 +243,7 @@ async function refreshDerivedSignals(env){
   }
 }
 
-async function recomputeMatches(env, req){
-  if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
+async function recomputeMatchesCore(env){
   await refreshDerivedSignals(env);
 
   const needs=await listEntity(env,'necesidades');
@@ -288,8 +289,14 @@ async function recomputeMatches(env, req){
     if(m.semaforo==='verde') verdes++;
     else if(m.semaforo==='amarillo') amarillos++;
   }
-  await audit(env,'matches','*','recalcular','deducción razonable',`${created} matches nuevos; ${verdes} verdes; ${amarillos} amarillos`);
-  return json({ok:true,created,verdes,amarillos});
+  return {ok:true,created,verdes,amarillos};
+}
+
+async function recomputeMatches(env, req){
+  if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
+  const result=await recomputeMatchesCore(env);
+  await audit(env,'matches','*','recalcular','deducción razonable',`${result.created} matches nuevos; ${result.verdes} verdes; ${result.amarillos} amarillos`);
+  return json(result);
 }
 
 async function globalSearch(env, q){
@@ -365,7 +372,7 @@ export default { async fetch(req, env){
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     await ensureStore(env,ENTITY_CONFIG);
-    if(path==='/api/health') { const storage=googleConfigured(env)?'google':(env.DB?'d1':'none'); return json({ok:true,service:'MESA API',storage,storageConfigured:storage!=='none',googleConfigured:googleConfigured(env)},200,h); }
+    if(path==='/api/health') { const storage=googleConfigured(env)?'google':(env.DB?'d1':'none'); return json({ok:true,service:'MESA API',storage,storageConfigured:storage!=='none',googleConfigured:googleConfigured(env),googleConfig:{clientId:Boolean(env.GOOGLE_CLIENT_ID),clientSecret:Boolean(env.GOOGLE_CLIENT_SECRET),refreshToken:Boolean(env.GOOGLE_REFRESH_TOKEN),spreadsheetId:Boolean(env.GOOGLE_SPREADSHEET_ID),driveFolderId:Boolean(env.GOOGLE_DRIVE_FOLDER_ID)}},200,h); }
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/public/dashboard'&&req.method==='GET') { const r=await publicDashboard(env); return withHeaders(r,h); }
     if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
