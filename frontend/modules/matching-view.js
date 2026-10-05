@@ -102,7 +102,7 @@ export function createMatchingView({$, esc, getDashboard, bindIntakeButtons}){
 
       '<div class="match-body-reference">'+
         '<div class="score-zone">'+
-          '<div class="score-gauge" style="--score-pct:'+pctFrom7(score7)+'%;--score-color:'+info.color+'">'+
+          '<div class="score-gauge" style="--gauge-pct:'+(pctFrom7(score7)*0.75).toFixed(1)+'%;--score-color:'+info.color+'">'+
             '<div><strong>'+score7.toFixed(1)+'</strong><span>Encaje general</span></div>'+
           '</div>'+
           '<span class="score-label" style="--label-color:'+info.color+'">'+esc(info.label)+'</span>'+
