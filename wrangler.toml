@@ -16,3 +16,9 @@ binding = "ASSETS"
 # GOOGLE_SPREADSHEET_ID
 # GOOGLE_DRIVE_FOLDER_ID
 # MESA_ADMIN_TOKEN
+
+
+[[d1_databases]]
+binding = "DB"
+database_name = "singulara-business-db"
+database_id = "d34776f2-0332-478a-904a-743e5a5e7be1"
