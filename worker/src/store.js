@@ -1,6 +1,7 @@
-import { ensureSheets, listRows as listGoogleRows, appendRow, updateRow as updateGoogleRow } from './google.js';
+import { ensureSheets, listRows as listGoogleRows, appendRecordRow, updateRow as updateGoogleRow } from './google.js';
 
 export const tableName = cfg => 'mesa_' + String(cfg.sheet || '').toLowerCase().replace(/[^a-z0-9_]/g,'');
+export const googleConfigured = env => Boolean(env.GOOGLE_SPREADSHEET_ID && env.GOOGLE_REFRESH_TOKEN && env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET);
 
 async function ensureD1Table(env,cfg){
   const t=tableName(cfg);
@@ -15,17 +16,21 @@ async function ensureD1Table(env,cfg){
 }
 
 export async function ensureStore(env, entityConfig){
+  if(googleConfigured(env)){
+    await ensureSheets(env,entityConfig);
+    await seedInitialMesaDataGoogle(env,entityConfig);
+    return {backend:'google'};
+  }
   if(env.DB){
     for(const cfg of Object.values(entityConfig)) await ensureD1Table(env,cfg);
     await seedInitialMesaData(env,entityConfig);
     return {backend:'d1'};
   }
-  await ensureSheets(env,entityConfig);
-  return {backend:'google'};
+  throw new Error('No hay datastore configurado para MESA');
 }
 
 export async function listRows(env,cfg){
-  if(!env.DB) return listGoogleRows(env,cfg);
+  if(googleConfigured(env)) return listGoogleRows(env,cfg);
   await ensureD1Table(env,cfg);
   const t=tableName(cfg);
   const out=await env.DB.prepare(`SELECT id,data FROM ${t} ORDER BY updated_at DESC`).all();
@@ -36,8 +41,8 @@ export async function listRows(env,cfg){
 }
 
 export async function appendRecord(env,cfg,rec){
-  if(!env.DB){
-    await appendRow(env,cfg.sheet,cfg.headers.map(h=>rec[h]??''));
+  if(googleConfigured(env)){
+    await appendRecordRow(env,cfg,rec);
     return;
   }
   await ensureD1Table(env,cfg);
@@ -47,7 +52,7 @@ export async function appendRecord(env,cfg,rec){
 }
 
 export async function updateRecord(env,cfg,rowRef,rec){
-  if(!env.DB){
+  if(googleConfigured(env)){
     await updateGoogleRow(env,cfg,rowRef,rec);
     return;
   }
@@ -439,4 +444,34 @@ export async function seedInitialMesaData(env,entityConfig){
   const peopleCfg=entityConfig.personas, projectCfg=entityConfig.proyectos;
   for(const rec of INITIAL_PEOPLE) await seedRecord(env,peopleCfg,rec);
   for(const rec of INITIAL_PROJECTS) await seedRecord(env,projectCfg,rec);
+}
+
+async function seedGoogleRecord(env,cfg,rec){
+  const rows=await listGoogleRows(env,cfg);
+  const found=rows.find(r=>String(r.id||'')===String(rec.id));
+  const ts=new Date().toISOString();
+  if(found){
+    const current={...found};
+    let changed=false;
+    for(const [k,v] of Object.entries(rec)){
+      if((current[k]===undefined || current[k]===null || current[k]==='') && v!==undefined && v!==null && v!==''){
+        current[k]=v;
+        changed=true;
+      }
+    }
+    if(changed){
+      current.fecha_actualizacion=ts;
+      await updateGoogleRow(env,cfg,found.__row,current);
+    }
+    return;
+  }
+  const full={...rec,fecha_actualizacion:rec.fecha_actualizacion||ts};
+  if(cfg.sheet==='Personas' && !full.fecha_incorporacion) full.fecha_incorporacion=ts;
+  await appendRecordRow(env,cfg,full);
+}
+
+async function seedInitialMesaDataGoogle(env,entityConfig){
+  const peopleCfg=entityConfig.personas, projectCfg=entityConfig.proyectos;
+  for(const rec of INITIAL_PEOPLE) await seedGoogleRecord(env,peopleCfg,rec);
+  for(const rec of INITIAL_PROJECTS) await seedGoogleRecord(env,projectCfg,rec);
 }
