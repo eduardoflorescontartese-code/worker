@@ -309,6 +309,24 @@ const INITIAL_PEOPLE = [
     origen_informacion:'correo',
     origen_referencia:'Correo 2026-10-05',
     eliminado:false
+  },
+  {
+    id:'P-0016',
+    nombre:'Alejandro',
+    apellido:'',
+    nombre_completo:'Alejandro',
+    email:'xalejandrow@gmail.com',
+    self_edit_hash:'e933b59c96006e52a939cdb231da75057fd565564939126e684f6af1439017f3',
+    profesion:'Redes y servidores / desarrollo web',
+    especialidad:'Configuración de redes y servidores; React / JavaScript',
+    puede_aportar:'Configuración de redes y servidores; desarrollo en React y JavaScript',
+    busca:'Interés en participar y colaborar en proyectos de MESA',
+    tiene_proyecto_propio:'No informado',
+    observaciones:'Queda a la espera de la primera reunión.',
+    estado:'Activo',
+    origen_informacion:'correo',
+    origen_referencia:'Correo 2026-10-05',
+    eliminado:false
   }];
 
 const INITIAL_PROJECTS = [
