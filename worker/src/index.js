@@ -1,6 +1,6 @@
 import { ENTITY_CONFIG, PUBLIC_ENTITIES, normalizeEntityName, validateRecord } from './schema.js';
 import { uploadFileToDrive } from './google.js';
-import { ensureStore, listRows, appendRecord, updateRecord } from './store.js';
+import { ensureStore, listRows, appendRecord, updateRecord, googleConfigured } from './store.js';
 import { buildMatches } from './matching.js';
 
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
@@ -276,7 +276,7 @@ export default { async fetch(req, env){
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     await ensureStore(env,ENTITY_CONFIG);
-    if(path==='/api/health') return json({ok:true,service:'MESA API',storage:env.DB?'d1':'google',storageConfigured:Boolean(env.DB||(env.GOOGLE_SPREADSHEET_ID&&env.GOOGLE_REFRESH_TOKEN))},200,h);
+    if(path==='/api/health') return json({ok:true,service:'MESA API',storage:googleConfigured(env)?'google':(env.DB?'d1':'none'),storageConfigured:Boolean(googleConfigured(env)||env.DB)},200,h);
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
