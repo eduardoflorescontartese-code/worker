@@ -6,6 +6,7 @@ async function call(path, init={}){
   const res=await fetch(base+path,{...init,headers}); const text=await res.text(); let data; try{data=JSON.parse(text)}catch{data={raw:text}}; if(!res.ok) throw new Error(data.error||`HTTP ${res.status}`); return data;
 }
 export const api={
+  hasToken(){ return Boolean(token()); },
   setToken(v){ sessionStorage.setItem('mesa_admin_token',v); },
   clearToken(){ sessionStorage.removeItem('mesa_admin_token'); },
   health:()=>call('/api/health'),
