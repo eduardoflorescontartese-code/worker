@@ -23,6 +23,34 @@ jobs:
         with:
           node-version: 20
 
+      - name: Puerta de seguridad
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm test
+          node --check worker/src/security.js
+          node --check worker/src/index.js
+          if grep -R "ADMIN_FALLBACK_HASH" worker/src; then
+            echo "No se permite autenticación administrativa embebida"
+            exit 1
+          fi
+          if grep -Eq 'ALLOWED_ORIGIN[[:space:]]*=[[:space:]]*"\*"' wrangler.toml; then
+            echo "CORS abierto detectado"
+            exit 1
+          fi
+
+      - name: Verificar secreto administrativo
+        shell: bash
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          SECRETS="$(npx --yes wrangler@4 secret list 2>/dev/null || true)"
+          printf '%s' "$SECRETS" | grep -q "MESA_ADMIN_TOKEN" || {
+            echo "Falta MESA_ADMIN_TOKEN en Cloudflare. Se bloquea el despliegue."
+            exit 1
+          }
+
       - name: Desplegar en Cloudflare
         uses: cloudflare/wrangler-action@v4
         with:
