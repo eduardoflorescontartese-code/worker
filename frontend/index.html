@@ -41,7 +41,7 @@
           <kbd>⌘ K</kbd>
         </div>
         <div class="top-actions">
-          <button class="icon-btn" aria-label="Notificaciones">♢</button>
+          <button class="icon-btn" id="notificationsBtn" aria-label="Notificaciones" title="Notificaciones">♢</button>
           <div class="visitor">
             <div class="avatar">M</div>
             <div><strong>Visitante MESA</strong><span>Acceso público</span></div>
@@ -75,18 +75,18 @@
         <section class="matching-panel">
           <div class="matching-head">
             <div>
-              <p>PANEL DE MATCHING</p>
-              <h1>Conexiones con potencial real</h1>
-              <span>La MESA cruza capacidades y necesidades para detectar colaboraciones útiles.</span>
+              <p id="panelKicker">PANEL DE MATCHING</p>
+              <h1 id="panelTitle">Conexiones con potencial real</h1>
+              <span id="panelSubtitle">La MESA cruza capacidades y necesidades para detectar colaboraciones útiles.</span>
             </div>
             <button class="primary-btn open-intake">Subir mi proyecto</button>
           </div>
 
           <div class="filters">
-            <button class="filter active">Todos</button>
-            <button class="filter">Personas</button>
-            <button class="filter">Proyectos</button>
-            <button class="filter">Necesidades</button>
+            <button class="filter active" data-view="matching">Todos</button>
+            <button class="filter" data-view="personas">Personas</button>
+            <button class="filter" data-view="proyectos">Proyectos</button>
+            <button class="filter" data-view="necesidades">Necesidades</button>
           </div>
 
           <div id="searchResults" class="search-results" hidden></div>
