@@ -29,3 +29,11 @@
   .list-head{align-items:stretch;flex-direction:column}
   .list-head input{min-width:0;width:100%}
 }
+
+.matches-card{margin-top:20px}
+.match-title{display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.traffic{width:11px;height:11px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.18)}
+.traffic.verde{background:#2f8f4e}
+.traffic.amarillo{background:#d0a11b}
+.traffic.rojo{background:#b94747}
+.match-row{align-items:center}
