@@ -1,22 +1,11 @@
-import { ensureSheets, listRows as listGoogleRows, appendRecordRow, updateRow as updateGoogleRow } from './google.js';
-
 const D1_TABLE='mesa_v2_records';
-
-export const googleCredentialsPresent = env => Boolean(
-  env.GOOGLE_SPREADSHEET_ID &&
-  env.GOOGLE_REFRESH_TOKEN &&
-  env.GOOGLE_CLIENT_ID &&
-  env.GOOGLE_CLIENT_SECRET
-);
-
-export const googleConfigured = env =>
-  env.GOOGLE_PRIMARY_ENABLED !== 'false' && googleCredentialsPresent(env);
 
 function entityKey(cfg){
   return String(cfg?.sheet||'').trim().toLowerCase();
 }
 
 async function ensureD1Store(env){
+  if(!env.DB) throw new Error('Cloudflare D1 no está configurado para MESA');
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ${D1_TABLE} (
     entity TEXT NOT NULL,
     id TEXT NOT NULL,
@@ -27,20 +16,12 @@ async function ensureD1Store(env){
   )`).run();
 }
 
-export async function ensureStore(env, entityConfig){
-  if(googleConfigured(env)){
-    await ensureSheets(env,entityConfig);
-    return {backend:'google'};
-  }
-  if(env.DB){
-    await ensureD1Store(env);
-    return {backend:'d1'};
-  }
-  throw new Error('No hay datastore configurado para MESA');
+export async function ensureStore(env){
+  await ensureD1Store(env);
+  return {backend:'d1'};
 }
 
 export async function listRows(env,cfg){
-  if(googleConfigured(env)) return listGoogleRows(env,cfg);
   await ensureD1Store(env);
   const entity=entityKey(cfg);
   const out=await env.DB.prepare(
@@ -54,10 +35,6 @@ export async function listRows(env,cfg){
 }
 
 export async function appendRecord(env,cfg,rec){
-  if(googleConfigured(env)){
-    await appendRecordRow(env,cfg,rec);
-    return;
-  }
   await ensureD1Store(env);
   const entity=entityKey(cfg);
   const ts=rec.fecha_actualizacion||rec.fecha||new Date().toISOString();
@@ -67,10 +44,6 @@ export async function appendRecord(env,cfg,rec){
 }
 
 export async function updateRecord(env,cfg,rowRef,rec){
-  if(googleConfigured(env)){
-    await updateGoogleRow(env,cfg,rowRef,rec);
-    return;
-  }
   await ensureD1Store(env);
   const entity=entityKey(cfg);
   const ts=rec.fecha_actualizacion||rec.fecha||new Date().toISOString();
