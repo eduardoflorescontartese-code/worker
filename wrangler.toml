@@ -3,7 +3,10 @@ main = "worker/src/index.js"
 compatibility_date = "2026-10-04"
 
 [vars]
-ALLOWED_ORIGIN = "*"
+ALLOWED_ORIGINS = "https://worker.eduardo-flores-contartese.workers.dev,https://mesa-matching.inmobiliaria-grupode.chatgpt.site"
+SECURITY_RATE_LIMIT_ENABLED = "true"
+PUBLIC_WRITE_LIMIT = "8"
+ADMIN_WRITE_LIMIT = "30"
 
 [assets]
 directory = "./frontend"
