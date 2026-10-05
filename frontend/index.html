@@ -2,260 +2,166 @@
 <html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#122744">
-  <title>MESA — Personas. Proyectos. Impacto real.</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MESA — Personas, proyectos e impacto</title>
+  <meta name="description" content="MESA conecta personas, capacidades, necesidades y proyectos para generar colaboración real.">
   <link rel="stylesheet" href="./styles.css?v=20261005-3">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="sidebar" aria-label="Navegación principal">
-      <div class="logo-row">
-        <div class="logo-mark" aria-hidden="true">M</div>
-        <div>
-          <strong>MESA</strong>
-          <span>Personas. Proyectos.<br>Impacto real.</span>
-        </div>
+  <div id="participantArea" class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">M</div>
+        <div><strong>MESA</strong><span>Personas. Proyectos.<br>Impacto real.</span></div>
       </div>
 
-      <nav class="side-nav">
-        <button class="nav-item active" data-section="inicio"><span class="nav-icon">⌂</span><span>Inicio</span></button>
-        <button class="nav-item" data-section="matching"><span class="nav-icon">⌘</span><span>Panel de Matching</span></button>
-        <button class="nav-item" data-section="personas"><span class="nav-icon">◎</span><span>Personas</span></button>
-        <button class="nav-item" data-section="proyectos"><span class="nav-icon">▱</span><span>Proyectos</span></button>
-        <button class="nav-item" data-section="necesidades"><span class="nav-icon">◇</span><span>Necesidades</span></button>
-        <button class="nav-item" data-section="organizaciones"><span class="nav-icon">▦</span><span>Organizaciones</span></button>
-        <button class="nav-item" data-section="red"><span class="nav-icon">⌁</span><span>Red</span></button>
-        <button class="nav-item" data-section="impacto"><span class="nav-icon">◌</span><span>Impacto</span></button>
-        <button class="nav-item" data-section="reportes"><span class="nav-icon">▤</span><span>Reportes</span></button>
+      <nav class="nav">
+        <button class="nav-item active" data-nav="inicio"><span>⌂</span>Inicio</button>
+        <button class="nav-item" data-nav="matching"><span>◎</span>Panel de Matching</button>
+        <button class="nav-item" data-nav="personas"><span>◉</span>Personas</button>
+        <button class="nav-item" data-nav="proyectos"><span>▣</span>Proyectos</button>
+        <button class="nav-item" data-nav="necesidades"><span>◆</span>Necesidades</button>
+        <button class="nav-item" data-nav="capacidades"><span>✦</span>Capacidades</button>
+        <button class="nav-item" data-nav="equipos"><span>◫</span>Equipos</button>
+        <button class="nav-item" data-nav="impacto"><span>↗</span>Impacto</button>
+        <button class="nav-item" data-nav="reportes"><span>▥</span>Reportes</button>
       </nav>
 
-      <div class="sidebar-bottom">
-        <button class="ghost-link" id="openHelp"><span>?</span> Ayuda &amp; recursos</button>
-        <div class="profile-mini">
-          <div class="avatar">M</div>
-          <div><strong>Visitante MESA</strong><span>Acceso abierto</span></div>
-          <span class="chev">⌄</span>
-        </div>
+      <div class="sidebar-foot">
+        <div class="status-dot"></div>
+        <div><strong>MESA abierta</strong><span>Ingreso libre. Sin login.</span></div>
       </div>
     </aside>
 
-    <main class="workspace">
+    <div class="workspace">
       <header class="topbar">
-        <label class="search-box">
+        <div class="search-wrap">
           <span>⌕</span>
-          <input id="globalSearch" type="search" placeholder="Buscar personas, proyectos o necesidades">
+          <input id="globalSearch" type="search" placeholder="Buscar personas, proyectos o necesidades...">
           <kbd>⌘ K</kbd>
-        </label>
+        </div>
         <div class="top-actions">
-          <button class="icon-button" aria-label="Notificaciones">♢<span class="notify-dot">0</span></button>
-          <button class="account-button"><span class="avatar small">M</span><span>Mi cuenta MESA</span><span>⌄</span></button>
+          <button class="icon-btn" aria-label="Notificaciones">♢</button>
+          <div class="visitor">
+            <div class="avatar">M</div>
+            <div><strong>Visitante MESA</strong><span>Acceso público</span></div>
+          </div>
         </div>
       </header>
 
-      <section id="participantArea" class="dashboard">
-        <div class="welcome-row">
-          <div>
-            <span class="eyebrow">MESA DE PROYECTOS</span>
-            <h1>Conectá capacidades con oportunidades reales.</h1>
-            <p>Sumá tu perfil o proyecto. MESA organiza necesidades, capacidades y conexiones para ayudarte a avanzar.</p>
+      <main class="dashboard">
+        <section class="suggestions-column">
+          <div class="section-heading">
+            <div><p>DESCUBRÍ OPORTUNIDADES</p><h2>Sugerencias para vos</h2></div>
+            <button class="link-btn" id="refreshDashboard">Actualizar</button>
           </div>
-          <div class="welcome-actions">
-            <button class="secondary-button" id="openProfile">Completar mi perfil</button>
-            <button class="primary-button" id="openProject">+ Sumar proyecto</button>
+
+          <div class="suggestion-block">
+            <div class="mini-head"><h3>Personas</h3><span id="peopleCount">0</span></div>
+            <div id="peopleSuggestions" class="stack-list"></div>
           </div>
-        </div>
 
-        <div class="stats-strip">
-          <article><span>Personas</span><strong id="peopleCount">0</strong></article>
-          <article><span>Proyectos</span><strong id="projectCount">0</strong></article>
-          <article><span>Matches sugeridos</span><strong id="matchCount">0</strong></article>
-          <article><span>Equipos formados</span><strong id="teamCount">0</strong></article>
-        </div>
+          <div class="suggestion-block">
+            <div class="mini-head"><h3>Proyectos</h3><span id="projectCount">0</span></div>
+            <div id="projectSuggestions" class="stack-list"></div>
+          </div>
 
-        <div class="matching-layout">
-          <aside class="suggestions-card panel-card">
-            <div class="panel-title">
-              <div>
-                <span class="section-kicker">SUGERENCIAS PARA VOS</span>
-                <h2>Personas y proyectos</h2>
-              </div>
-              <button class="text-button" id="refreshSuggestions">Actualizar</button>
-            </div>
-
-            <div class="empty-suggestions" id="suggestionsList">
-              <div class="empty-icon">◎</div>
-              <strong>Tu red empieza acá</strong>
-              <p>Completá tu ficha para que MESA pueda detectar capacidades y necesidades compatibles.</p>
-              <button class="primary-button full" data-open-intake="profile">Completar mi ficha</button>
-            </div>
-
-            <button class="view-all">Ver todas las sugerencias <span>→</span></button>
-          </aside>
-
-          <section class="match-board panel-card" id="matchingPanel">
-            <div class="panel-title board-title">
-              <div>
-                <span class="section-kicker">PANEL DE MATCHING</span>
-                <h2>Construí conexiones que hagan avanzar proyectos</h2>
-                <p>MESA cruza capacidades disponibles con necesidades concretas. Ninguna conexión se presenta como confirmada sin intervención humana.</p>
-              </div>
-              <button class="filter-button">☷ Filtros</button>
-            </div>
-
-            <div class="match-stage">
-              <div class="stage-column">
-                <div class="stage-label"><span>◎</span> Persona / capacidad</div>
-                <div class="placeholder-card">
-                  <div class="placeholder-avatar">1</div>
-                  <div><strong>Primer perfil</strong><span>Esperando nuevas cargas</span></div>
-                </div>
-                <div class="factor-card">
-                  <span>Factores de match</span>
-                  <div><b>Capacidad</b><i>—</i></div>
-                  <div><b>Sector</b><i>—</i></div>
-                  <div><b>Disponibilidad</b><i>—</i></div>
-                  <div><b>Ubicación</b><i>—</i></div>
-                </div>
-              </div>
-
-              <div class="match-core" aria-label="Estado del matching">
-                <div class="core-halo">
-                  <div class="core-mark">M</div>
-                </div>
-                <strong>Sin matches todavía</strong>
-                <span>La base nueva comienza vacía</span>
-              </div>
-
-              <div class="stage-column">
-                <div class="stage-label"><span>▱</span> Proyecto / necesidad</div>
-                <div class="placeholder-card">
-                  <div class="project-placeholder">+</div>
-                  <div><strong>Primer proyecto</strong><span>Esperando nuevas cargas</span></div>
-                </div>
-                <div class="need-box">
-                  <span>Necesidad principal</span>
-                  <strong>Se mostrará cuando exista información real</strong>
-                </div>
-              </div>
-            </div>
-
-            <div class="match-summary">
-              <div><span class="summary-icon">⌁</span><p><strong>Motor de matching preparado</strong><br><small>Las recomendaciones aparecerán cuando haya suficientes datos reales.</small></p></div>
-              <button class="primary-button" data-open-intake="project">Sumar información</button>
-            </div>
-          </section>
-
-          <aside class="right-rail">
-            <section class="panel-card opportunity-card">
-              <div class="panel-title compact">
-                <div><span class="section-kicker">PARA VOS</span><h2>Oportunidades</h2></div>
-                <button class="text-button">Ver todas</button>
-              </div>
-              <div class="empty-opportunity">
-                <span class="opportunity-icon">◇</span>
-                <strong>Sin oportunidades sugeridas</strong>
-                <p>A medida que se incorporen personas y proyectos, aparecerán acá conexiones relevantes.</p>
-              </div>
-            </section>
-
-            <section class="panel-card impact-card">
-              <span class="section-kicker">TU IMPACTO HOY</span>
-              <div class="impact-grid">
-                <div><strong>0</strong><span>Conexiones sugeridas</span></div>
-                <div><strong>0</strong><span>En seguimiento</span></div>
-                <div><strong>0</strong><span>Nuevas colaboraciones</span></div>
-              </div>
-              <button class="view-report">Ver reporte de impacto <span>→</span></button>
-            </section>
-
-            <section class="panel-card join-card">
-              <div class="join-mark">M</div>
-              <div>
-                <strong>¿Tenés una idea o proyecto?</strong>
-                <p>Subilo gratis. No necesitás cuenta ni aprobación previa para comenzar.</p>
-              </div>
-              <button class="primary-button full" data-open-intake="project">Subir mi proyecto</button>
-            </section>
-          </aside>
-        </div>
-      </section>
-
-      <section id="adminArea" class="admin-area" hidden>
-        <div class="admin-head">
-          <div><span class="eyebrow">ADMINISTRACIÓN</span><h1>Coordinación de MESA</h1><p>Gestión privada de personas, proyectos y matches.</p></div>
-          <div class="welcome-actions"><button id="refreshAdmin" class="secondary-button">Actualizar</button><button id="recomputeMatches" class="primary-button">Recalcular matches</button></div>
-        </div>
-        <div class="admin-grid">
-          <section class="panel-card admin-list-card">
-            <div class="panel-title compact"><h2>Personas</h2><input id="adminSearch" type="search" placeholder="Buscar"></div>
-            <div id="adminPeopleList" class="admin-list"></div>
-          </section>
-          <section class="panel-card admin-list-card">
-            <div class="panel-title compact"><h2>Proyectos</h2></div>
-            <div id="adminProjectsList" class="admin-list"></div>
-          </section>
-        </div>
-        <section class="panel-card admin-list-card matches-card">
-          <div class="panel-title compact"><h2>Matches</h2></div>
-          <div id="adminMatchesList" class="admin-list"></div>
+          <div class="suggestion-block">
+            <div class="mini-head"><h3>Necesidades</h3><span id="needsCount">0</span></div>
+            <div id="needSuggestions" class="stack-list"></div>
+          </div>
         </section>
 
-        <div class="admin-editors">
-          <form id="adminPersonForm" class="panel-card editor-card">
-            <h2>Editar persona</h2>
-            <input id="adminPersonId" type="hidden">
-            <label>Nombre<input id="adminName"></label>
-            <label>Correo<input id="adminEmail" type="email"></label>
-            <label>Profesión<input id="adminProfession"></label>
-            <label>Especialidad<input id="adminSpecialty"></label>
-            <label>Puede aportar<textarea id="adminContribute"></textarea></label>
-            <label>Busca / necesita<textarea id="adminNeeds"></textarea></label>
-            <button class="primary-button" type="submit">Guardar cambios</button>
-            <p id="adminPersonStatus" class="form-status"></p>
-          </form>
-          <form id="adminProjectForm" class="panel-card editor-card">
-            <h2>Editar proyecto</h2>
-            <input id="adminProjectId" type="hidden">
-            <label>Nombre<input id="adminProjectName"></label>
-            <label>Sector<input id="adminProjectSector"></label>
-            <label>Etapa<input id="adminProjectStage"></label>
-            <label>Descripción<textarea id="adminProjectDescription"></textarea></label>
-            <button class="primary-button" type="submit">Guardar proyecto</button>
-            <p id="adminProjectStatus" class="form-status"></p>
-          </form>
-        </div>
-      </section>
-    </main>
+        <section class="matching-panel">
+          <div class="matching-head">
+            <div>
+              <p>PANEL DE MATCHING</p>
+              <h1>Conexiones con potencial real</h1>
+              <span>La MESA cruza capacidades y necesidades para detectar colaboraciones útiles.</span>
+            </div>
+            <button class="primary-btn open-intake">Subir mi proyecto</button>
+          </div>
+
+          <div class="filters">
+            <button class="filter active">Todos</button>
+            <button class="filter">Personas</button>
+            <button class="filter">Proyectos</button>
+            <button class="filter">Necesidades</button>
+          </div>
+
+          <div id="searchResults" class="search-results" hidden></div>
+          <div id="matchesList" class="matches-list"></div>
+        </section>
+
+        <aside class="right-rail">
+          <section class="rail-card featured">
+            <p>PROYECTO DESTACADO</p>
+            <div id="featuredProject"></div>
+          </section>
+
+          <section class="rail-card impact-card">
+            <div class="impact-title"><div><p>TU IMPACTO HOY</p><h3>Actividad de MESA</h3></div><span>↗</span></div>
+            <div class="impact-grid">
+              <div><strong id="impactPeople">0</strong><span>Personas</span></div>
+              <div><strong id="impactProjects">0</strong><span>Proyectos</span></div>
+              <div><strong id="impactMatches">0</strong><span>Matches</span></div>
+            </div>
+          </section>
+
+          <section class="rail-card">
+            <p>ACCIONES RÁPIDAS</p>
+            <button class="action-row open-intake"><span>＋</span><div><strong>Subir mi proyecto</strong><small>Contanos qué estás construyendo</small></div><b>›</b></button>
+            <button class="action-row open-intake"><span>✦</span><div><strong>Aportar capacidades</strong><small>Mostrá en qué podés ayudar</small></div><b>›</b></button>
+          </section>
+        </aside>
+      </main>
+    </div>
   </div>
 
-  <dialog id="intakeDialog" class="intake-dialog">
-    <form id="selfForm" method="dialog" class="intake-form">
-      <div class="dialog-head">
-        <div><span class="section-kicker">SUMATE A MESA</span><h2 id="dialogTitle">Completá tu ficha</h2><p>La participación es libre y gratuita. Cargá solo información real.</p></div>
-        <button type="button" class="close-button" id="closeIntake" aria-label="Cerrar">×</button>
-      </div>
+  <div id="intakeModal" class="modal" hidden>
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button class="modal-close" data-close-modal aria-label="Cerrar">×</button>
+      <p class="modal-eyebrow">SUMATE A MESA</p>
+      <h2 id="modalTitle">Cargá tu perfil y tu proyecto</h2>
+      <p class="modal-copy">No necesitás cuenta ni contraseña. Completás la información y MESA la usa para detectar conexiones útiles.</p>
+      <form id="selfForm">
+        <div class="form-grid">
+          <label>Nombre y apellido<input id="name" autocomplete="name" required></label>
+          <label>Correo electrónico<input id="email" type="email" autocomplete="email" required></label>
+          <label>Área / profesión<input id="profession" placeholder="Ej.: software, agro, diseño"></label>
+          <label>Especialidad<input id="specialty" placeholder="Tu foco principal"></label>
+          <label>Proyecto o idea<input id="project" placeholder="Opcional si solo querés colaborar"></label>
+          <label>Etapa del proyecto<input id="stage" placeholder="Idea, prototipo, piloto, ventas..."></label>
+          <label>Sector<input id="sector" placeholder="Tecnología, agro, industria..."></label>
+          <label class="span-2">Descripción breve<textarea id="projectDescription" placeholder="Qué problema resuelve y qué estás construyendo."></textarea></label>
+          <label class="span-2">¿Qué necesitás?<textarea id="needs" placeholder="Personas, tecnología, financiación, contactos, validación..."></textarea></label>
+          <label class="span-2">¿Qué podés aportar?<textarea id="contribute" placeholder="Experiencia, conocimientos, contactos, tecnología, gestión..."></textarea></label>
+        </div>
+        <button class="primary-btn submit-btn" type="submit">Guardar en MESA</button>
+        <p id="formStatus" class="form-status" aria-live="polite"></p>
+      </form>
+    </section>
+  </div>
 
-      <div class="form-grid">
-        <label>Nombre y apellido<input id="name" autocomplete="name" required></label>
-        <label>Correo electrónico<input id="email" type="email" autocomplete="email" required></label>
-        <label>Área / profesión<input id="profession" placeholder="Ej.: agronomía, software, diseño"></label>
-        <label>Especialidad<input id="specialty" placeholder="Tu foco principal"></label>
-        <label>Proyecto o idea<input id="project" placeholder="Dejalo vacío si solo querés colaborar"></label>
-        <label>Etapa del proyecto<input id="stage" placeholder="Idea, prototipo, piloto, ventas..."></label>
-        <label>Sector<input id="sector" placeholder="Agro, tecnología, alimentos..."></label>
-        <label class="span-2">Descripción breve del proyecto<textarea id="projectDescription" placeholder="Qué problema resuelve y qué estás construyendo."></textarea></label>
-        <label class="span-2">¿Qué necesitás para avanzar?<textarea id="needs" placeholder="Personas, tecnología, financiación, contactos, validación..."></textarea></label>
-        <label class="span-2">¿Qué podés aportar?<textarea id="contribute" placeholder="Experiencia, conocimientos, contactos, gestión..."></textarea></label>
-      </div>
+  <section id="adminArea" class="admin-area" hidden>
+    <header class="admin-top">
+      <div><strong>MESA · Administración</strong><span>Panel privado</span></div>
+      <div><button id="refreshAdmin">Actualizar</button><button id="recomputeMatches">Recalcular matches</button></div>
+    </header>
+    <div class="admin-grid">
+      <div class="admin-box"><div class="admin-title"><h2>Personas</h2><input id="adminSearch" placeholder="Buscar"></div><div id="adminPeopleList"></div></div>
+      <div class="admin-box"><h2>Proyectos</h2><div id="adminProjectsList"></div></div>
+    </div>
+    <div class="admin-box"><h2>Matches</h2><div id="adminMatchesList"></div></div>
 
-      <div class="dialog-actions">
-        <p class="privacy-copy">Tu correo no se publica. La información se usa para organizar MESA y detectar conexiones útiles.</p>
-        <button class="primary-button large" type="submit">Guardar mi información</button>
-      </div>
-      <p id="formStatus" class="form-status" aria-live="polite"></p>
+    <form id="adminPersonForm" hidden>
+      <input id="adminPersonId"><input id="adminName"><input id="adminEmail"><input id="adminProfession"><input id="adminSpecialty"><textarea id="adminContribute"></textarea><textarea id="adminNeeds"></textarea><button>Guardar</button><span id="adminPersonStatus"></span>
     </form>
-  </dialog>
+    <form id="adminProjectForm" hidden>
+      <input id="adminProjectId"><input id="adminProjectName"><input id="adminProjectSector"><input id="adminProjectStage"><textarea id="adminProjectDescription"></textarea><button>Guardar</button><span id="adminProjectStatus"></span>
+    </form>
+  </section>
 
   <script src="./config.js?v=20261005-3"></script>
   <script type="module" src="./app.js?v=20261005-3"></script>
