@@ -11,3 +11,5 @@ jobs:
         with:
           node-version: 22
       - run: npm test
+      - run: node --check frontend/app.js
+      - run: node --check worker/src/index.js
