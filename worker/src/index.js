@@ -1,6 +1,7 @@
 import { ENTITY_CONFIG, PUBLIC_ENTITIES, normalizeEntityName, validateRecord } from './schema.js';
 import { ensureStore, listRows, appendRecord, updateRecord } from './store.js';
 import { buildMatches } from './matching.js';
+import { createPublicApi } from './public.js';
 
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
 const now = () => new Date().toISOString();
@@ -27,44 +28,7 @@ async function audit(env, entity,id,action,origin,detail=''){ const cfg=ENTITY_C
 
 async function listEntity(env,entity, includeDeleted=false){ const cfg=ENTITY_CONFIG[entity]; const rows=await listRows(env,cfg); return includeDeleted ? rows : rows.filter(r=>!deleted(r.eliminado)); }
 async function findById(env,entity,id){ return (await listRows(env,ENTITY_CONFIG[entity])).find(r=>String(r.id)===String(id)); }
-function publicPerson(r){ return {id:r.id,nombre_completo:r.nombre_completo||[r.nombre,r.apellido].filter(Boolean).join(' '),profesion:r.profesion||'',especialidad:r.especialidad||'',tiene_proyecto_propio:r.tiene_proyecto_propio||'',estado:r.estado||'Activo'}; }
-function publicProject(r){ return {id:r.id,nombre:r.nombre||'',creador_id:r.creador_id||'',descripcion:r.descripcion||'',sector:r.sector||'',etapa:r.etapa||'',estado:r.estado||'Activo'}; }
-
-function publicCapability(r){ return {id:r.id,entidad_tipo:r.entidad_tipo||'',entidad_id:r.entidad_id||'',capacidad:r.capacidad||'',categoria:r.categoria||'',nivel:r.nivel||'',estado:r.estado||'Disponible'}; }
-function publicNeed(r){ return {id:r.id,entidad_tipo:r.entidad_tipo||'',entidad_id:r.entidad_id||'',necesidad:r.necesidad||'',categoria:r.categoria||'',prioridad:r.prioridad||'',estado:r.estado||'Abierta'}; }
-function publicMatch(r){ return {id:r.id,persona_id:r.persona_id||'',proyecto_id:r.proyecto_id||'',necesidad_id:r.necesidad_id||'',capacidad_id:r.capacidad_id||'',explicacion:r.explicacion||'',puntuacion:Number(r.puntuacion)||0,semaforo:r.semaforo||'',estado:r.estado||'sugerido'}; }
-function publicTeam(r){ return {id:r.id,nombre:r.nombre||'',proyecto_id:r.proyecto_id||'',roles:r.roles||'',capacidades_cubiertas:r.capacidades_cubiertas||'',capacidades_faltantes:r.capacidades_faltantes||'',estado:r.estado||'Activo',notas:r.notas||'',proximos_pasos:r.proximos_pasos||''}; }
-
-async function publicDashboard(env){
-  const [people,projects,needs,caps,matches,teams]=await Promise.all([
-    listEntity(env,'personas'),
-    listEntity(env,'proyectos'),
-    listEntity(env,'necesidades'),
-    listEntity(env,'capacidades'),
-    listEntity(env,'matches'),
-    listEntity(env,'equipos')
-  ]);
-  const peopleMap=new Map(people.map(p=>[String(p.id),publicPerson(p)]));
-  const projectMap=new Map(projects.map(p=>[String(p.id),publicProject(p)]));
-  const safeMatches=matches
-    .map(publicMatch)
-    .sort((a,b)=>b.puntuacion-a.puntuacion)
-    .slice(0,60)
-    .map(m=>({
-      ...m,
-      persona:peopleMap.get(String(m.persona_id))||null,
-      proyecto:projectMap.get(String(m.proyecto_id))||null
-    }));
-  return json({
-    counts:{personas:people.length,proyectos:projects.length,necesidades:needs.length,capacidades:caps.length,matches:matches.length,equipos:teams.length},
-    personas:people.slice(0,60).map(publicPerson),
-    proyectos:projects.slice(0,60).map(publicProject),
-    necesidades:needs.slice(0,60).map(publicNeed),
-    capacidades:caps.slice(0,60).map(publicCapability),
-    equipos:teams.slice(0,60).map(publicTeam),
-    matches:safeMatches
-  });
-}
+const publicApi=createPublicApi({listEntity,json});
 
 async function crud(env, req, entity, id){
   const cfg=ENTITY_CONFIG[entity];
@@ -172,17 +136,6 @@ async function selfSave(env, req){
   let matchingResult={ok:true,created:0,verdes:0,amarillos:0};
   try{ matchingResult=await recomputeMatchesCore(env); }catch{}
   return json({ok:true,persona:{id:person.id,nombre_completo:person.nombre_completo,estado:person.estado},matching:matchingResult});
-}
-
-async function publicStats(env){
-  const people=await listEntity(env,'personas');
-  const projects=await listEntity(env,'proyectos');
-  return json({personas:people.length,proyectos:projects.length});
-}
-async function publicPendingIds(env){
-  const people=await listEntity(env,'personas');
-  const ids=people.filter(p=>String(p.origen_informacion||'')!=='autocarga web').map(p=>p.id);
-  return json({ids});
 }
 
 async function bootstrap(env, req){
@@ -301,29 +254,6 @@ async function recomputeMatches(env, req){
   return json(result);
 }
 
-async function globalSearch(env, q){
-  const needle=String(q||'').trim().toLowerCase();
-  if(!needle) return json({query:q,results:[]});
-  const results=[];
-  for(const row of await listEntity(env,'personas')){
-    const safe=publicPerson(row);
-    if(Object.values(safe).join(' ').toLowerCase().includes(needle)) results.push({entity:'personas',id:safe.id,label:safe.nombre_completo,row:safe});
-  }
-  for(const row of await listEntity(env,'proyectos')){
-    const safe=publicProject(row);
-    if(Object.values(safe).join(' ').toLowerCase().includes(needle)) results.push({entity:'proyectos',id:safe.id,label:safe.nombre,row:safe});
-  }
-  for(const row of await listEntity(env,'capacidades')){
-    const safe=publicCapability(row);
-    if(Object.values(safe).join(' ').toLowerCase().includes(needle)) results.push({entity:'capacidades',id:safe.id,label:safe.capacidad,row:safe});
-  }
-  for(const row of await listEntity(env,'necesidades')){
-    const safe=publicNeed(row);
-    if(Object.values(safe).join(' ').toLowerCase().includes(needle)) results.push({entity:'necesidades',id:safe.id,label:safe.necesidad,row:safe});
-  }
-  return json({query:q,results:results.slice(0,60)});
-}
-
 async function uploadDocument(env, req){
   if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
   if(!env.DOCS) return json({error:'El almacenamiento de archivos todavía no está configurado. La base D1 sí está operativa.'},503);
@@ -387,13 +317,13 @@ export default { async fetch(req, env){
       },200,h);
     }
     await ensureStore(env);
-    if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
-    if(path==='/api/public/dashboard'&&req.method==='GET') { const r=await publicDashboard(env); return withHeaders(r,h); }
-    if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
+    if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicApi.stats(env); return withHeaders(r,h); }
+    if(path==='/api/public/dashboard'&&req.method==='GET') { const r=await publicApi.dashboard(env); return withHeaders(r,h); }
+    if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicApi.pendingIds(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
     if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await recomputeMatches(env,req); return withHeaders(r,h); }
-    if(path==='/api/search'&&req.method==='GET') { const r=await globalSearch(env,url.searchParams.get('q')); return withHeaders(r,h); }
+    if(path==='/api/search'&&req.method==='GET') { const r=await publicApi.search(env,url.searchParams.get('q')); return withHeaders(r,h); }
     if(path==='/api/documentos/upload'&&req.method==='POST') { const r=await uploadDocument(env,req); return withHeaders(r,h); }
     const m=path.match(/^\/api\/([a-záéíóúñ]+)(?:\/([^/]+))?$/i);
     if(m){ const entity=normalizeEntityName(m[1]); const r=await crud(env,req,entity,m[2]); return withHeaders(r,h); }
