@@ -87,7 +87,7 @@ test('guard bloquea origen de escritura, método extraño y payload enorme',asyn
   let res=await guardRequest(env,req,'/api/self/persona');
   assert.equal(res.status,403);
 
-  req=new Request('https://worker.test/api/health',{method:'TRACE'});
+  req=new Request('https://worker.test/api/health',{method:'PATCH'});
   res=await guardRequest(env,req,'/api/health');
   assert.equal(res.status,405);
 
