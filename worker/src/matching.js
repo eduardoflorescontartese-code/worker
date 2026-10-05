@@ -33,6 +33,13 @@ export function scoreMatch(need, capability) {
   return Math.min(100, score);
 }
 
+export function matchLight(score) {
+  const n=Number(score)||0;
+  if(n>=70) return 'verde';
+  if(n>=35) return 'amarillo';
+  return 'rojo';
+}
+
 export function buildMatches(needs, capabilities) {
   const result=[];
   for(const n of needs.filter(x=>!truthy(x.eliminado) && String(x.estado||'abierta').toLowerCase()!=='cubierta')) {
@@ -40,7 +47,7 @@ export function buildMatches(needs, capabilities) {
       if (n.entidad_tipo===c.entidad_tipo && n.entidad_id===c.entidad_id) continue;
       const score=scoreMatch(n,c);
       if(score<30) continue;
-      result.push({need:n, capability:c, score, explanation:`${c.entidad_tipo} ${c.entidad_id} aporta “${c.capacidad}” para cubrir “${n.necesidad}”.`});
+      result.push({need:n, capability:c, score, semaforo:matchLight(score), explanation:`${c.entidad_tipo} ${c.entidad_id} aporta “${c.capacidad}” para cubrir “${n.necesidad}”.`});
     }
   }
   return result.sort((a,b)=>b.score-a.score);
