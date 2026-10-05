@@ -1,108 +1,120 @@
 import { api } from './api.js';
 
-const views=['dashboard','personas','proyectos','capacidades','necesidades','matches','equipos','documentos','pendientes','configuracion'];
-const labels={dashboard:'Dashboard',personas:'Personas',proyectos:'Proyectos',capacidades:'Capacidades',necesidades:'Necesidades',matches:'Matches',equipos:'Equipos',documentos:'Documentos',pendientes:'Pendientes',configuracion:'Configuración'};
-const columns={
- personas:['id','nombre_completo','profesion','especialidad','estado','fecha_actualizacion'], proyectos:['id','nombre','sector','etapa','estado','fecha_actualizacion'], capacidades:['id','entidad_tipo','entidad_id','capacidad','categoria','estado'], necesidades:['id','entidad_tipo','entidad_id','necesidad','categoria','prioridad','estado'], matches:['id','persona_id','proyecto_id','explicacion','puntuacion','estado'], equipos:['id','nombre','proyecto_id','integrantes','estado'], documentos:['id','nombre','tipo','persona_id','proyecto_id','url','estado_analisis'], pendientes:['id','entidad_tipo','entidad_id','pendiente','prioridad','estado']};
-const formFields={
- personas:['nombre_completo','email','telefono','ciudad','departamento','pais','profesion','especialidad','experiencia','seniority','sectores','tecnologias','disponibilidad','intereses','puede_aportar','busca','tiene_proyecto_propio','linkedin','web','observaciones','preguntas_pendientes','estado','origen_informacion'],
- proyectos:['nombre','creador_id','responsables','descripcion','sector','problema','solucion','etapa','tecnologias','evidencia_existente','perfiles_buscados','necesidades_tecnicas','necesidades_comerciales','necesidades_financieras','necesidades_legales','necesidades_hardware','validaciones','piloto','clientes','estado','proximos_pasos','origen_informacion'],
- capacidades:['entidad_tipo','entidad_id','capacidad','categoria','nivel','evidencia','estado','origen_informacion'],
- necesidades:['entidad_tipo','entidad_id','necesidad','categoria','prioridad','detalle','estado','origen_informacion'],
- matches:['estado'], equipos:['nombre','proyecto_id','integrantes','roles','capacidades_cubiertas','capacidades_faltantes','estado','notas','responsable_id','proximos_pasos','origen_informacion'],
- pendientes:['entidad_tipo','entidad_id','pendiente','prioridad','estado','fecha_objetivo','responsable_id','notas','origen_informacion']
-};
-let current='dashboard';
-const app=document.querySelector('#app'), title=document.querySelector('#title'), subtitle=document.querySelector('#subtitle');
-const nav=document.querySelector('#nav');
-for(const v of views){ const b=document.createElement('button'); b.textContent=labels[v]; b.dataset.view=v; b.onclick=()=>go(v); nav.appendChild(b); }
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 
-document.querySelector('#authBtn').onclick=()=>{ const v=prompt('Token de administración de MESA (se guarda solo durante esta sesión):',''); if(v) api.setToken(v); };
-document.querySelector('#searchBtn').onclick=searchGlobal; document.querySelector('#globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter')searchGlobal();});
+let people = [];
+let projects = [];
 
-async function go(v){ current=v; location.hash=v; [...nav.children].forEach(b=>b.classList.toggle('active',b.dataset.view===v)); title.textContent=labels[v]; subtitle.textContent=v==='dashboard'?'¿Quién puede ayudar a quién?':'Google Sheets es la fuente de verdad'; app.innerHTML='<div class="content"><div class="empty">Cargando…</div></div>'; try{ if(v==='dashboard') await dashboard(); else if(v==='configuracion') await settings(); else await entityView(v); }catch(e){ fail(e); } }
-function esc(v){ return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
-function fail(e){ app.innerHTML=`<div class="content"><div class="notice error"><strong>Error:</strong> ${esc(e.message)}</div></div>`; }
+function getProject(person){
+  const own = String(person.tiene_proyecto_propio || '').replace(/^Sí\s*[—-]\s*/i,'').trim();
+  if (own) return own;
+  const linked = projects.find(p => String(p.creador_id || '') === String(person.id || ''));
+  return linked?.nombre || '';
+}
 
-async function dashboard(){ const ents=['personas','proyectos','capacidades','necesidades','matches','equipos','pendientes','documentos']; const data=Object.fromEntries(await Promise.all(ents.map(async e=>[e,await api.list(e)]))); const high=(data.matches||[]).filter(x=>Number(x.puntuacion)>=70).length; const incomplete=(data.personas||[]).filter(x=>!x.profesion||!x.email).length; app.innerHTML=`<div class="content"><div class="cards">${card('Personas',data.personas.length)}${card('Proyectos',data.proyectos.length)}${card('Necesidades abiertas',data.necesidades.filter(x=>String(x.estado).toLowerCase()!=='cubierta').length)}${card('Matches',data.matches.length)}${card('Matches ≥70%',high)}${card('Equipos',data.equipos.length)}${card('Perfiles incompletos',incomplete)}${card('Documentos',data.documentos.length)}</div><div class="split" style="margin-top:16px"><div class="card"><h3>Proyectos por etapa</h3>${stageList(data.proyectos)}</div><div class="card"><h3>Prioridad operativa</h3><p class="muted">Las necesidades se cruzan exclusivamente contra capacidades poseídas. Nunca se registran necesidades como capacidades personales.</p><button id="recompute">Recalcular matches</button></div></div></div>`; document.querySelector('#recompute').onclick=async()=>{try{const r=await api.recompute();alert(`${r.created} matches nuevos`);go('matches')}catch(e){alert(e.message)}}; }
-function card(k,v){return `<div class="card"><div class="muted">${esc(k)}</div><div class="metric">${esc(v)}</div></div>`}
-function stageList(items){ const m={}; for(const p of items)m[p.etapa||'Sin confirmar']=(m[p.etapa||'Sin confirmar']||0)+1; return Object.entries(m).map(([k,v])=>`<p><span class="badge">${esc(k)}</span> <strong>${v}</strong></p>`).join('')||'<p class="muted">Sin información todavía.</p>'; }
+function render(){
+  const q = ($('#search').value || '').trim().toLowerCase();
+  const filtered = people.filter(p => {
+    const text = [
+      p.nombre_completo,
+      p.email,
+      p.profesion,
+      p.especialidad,
+      p.puede_aportar,
+      p.busca,
+      getProject(p)
+    ].join(' ').toLowerCase();
+    return !q || text.includes(q);
+  });
 
-async function entityView(entity){
-  const rows=await api.list(entity);
-  const cols=columns[entity]||Object.keys(rows[0]||{}).slice(0,8);
-  const hasPersonFilters=entity==='personas';
-  app.innerHTML=`<div class="content">
-    <div class="toolbar">
-      <div><strong id="recordCount">${rows.length}</strong> registros</div>
-      <div>${entity==='documentos'?'<button id="upload">Subir documento</button>':''}${formFields[entity]?` <button id="new">Nuevo</button>`:''}</div>
-    </div>
-    ${hasPersonFilters?personFilters(rows):''}
-    <div id="entityTable">${table(rows,cols,entity)}</div>
-  </div>`;
+  $('#count').textContent = filtered.length;
 
-  if(hasPersonFilters){
-    const controls=[...document.querySelectorAll('[data-person-filter]')];
-    const apply=()=>{
-      const q=(document.querySelector('#personFilterText')?.value||'').trim().toLowerCase();
-      const profession=(document.querySelector('#personFilterProfession')?.value||'').toLowerCase();
-      const department=(document.querySelector('#personFilterDepartment')?.value||'').toLowerCase();
-      const seniority=(document.querySelector('#personFilterSeniority')?.value||'').toLowerCase();
-      const state=(document.querySelector('#personFilterState')?.value||'').toLowerCase();
-      const tech=(document.querySelector('#personFilterTech')?.value||'').trim().toLowerCase();
-      const filtered=rows.filter(r=>{
-        const haystack=[r.nombre_completo,r.email,r.telefono,r.ciudad,r.departamento,r.pais,r.profesion,r.especialidad,r.experiencia,r.seniority,r.sectores,r.tecnologias,r.intereses,r.puede_aportar,r.busca,r.estado].join(' ').toLowerCase();
-        return (!q||haystack.includes(q))
-          &&(!profession||String(r.profesion||'').toLowerCase()===profession)
-          &&(!department||String(r.departamento||'').toLowerCase()===department)
-          &&(!seniority||String(r.seniority||'').toLowerCase()===seniority)
-          &&(!state||String(r.estado||'').toLowerCase()===state)
-          &&(!tech||String(r.tecnologias||'').toLowerCase().includes(tech));
-      });
-      document.querySelector('#recordCount').textContent=filtered.length;
-      document.querySelector('#entityTable').innerHTML=table(filtered,cols,entity);
-      bindRowActions(entity,rows);
-    };
-    controls.forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',apply));
-    document.querySelector('#clearPersonFilters').onclick=()=>{
-      controls.forEach(el=>{el.value='';});
-      apply();
-    };
+  $('#peopleList').innerHTML = filtered.length ? filtered.map(p => {
+    const project = getProject(p);
+    const extra = [p.profesion,p.especialidad].filter(Boolean).join(' · ');
+    const details = [
+      p.puede_aportar ? '<p><b>Puede aportar:</b> '+esc(p.puede_aportar)+'</p>' : '',
+      p.busca ? '<p><b>Busca:</b> '+esc(p.busca)+'</p>' : '',
+      p.observaciones ? '<p><b>Nota:</b> '+esc(p.observaciones)+'</p>' : ''
+    ].join('');
+
+    return '<article class="person-card">'+
+      '<div class="person-head">'+
+        '<div><h3>'+esc(p.nombre_completo || p.nombre || p.id)+'</h3>'+
+        '<p class="mail">'+esc(p.email || 'Correo pendiente')+'</p></div>'+
+        '<span class="id">'+esc(p.id)+'</span>'+
+      '</div>'+
+      (extra ? '<p class="meta">'+esc(extra)+'</p>' : '')+
+      '<div class="project"><span>Proyecto</span><strong>'+esc(project || 'Todavía no informado')+'</strong></div>'+
+      (details ? '<details><summary>Ver información disponible</summary>'+details+'</details>' : '')+
+    '</article>';
+  }).join('') : '<div class="empty">No hay resultados.</div>';
+}
+
+async function load(){
+  try{
+    [people, projects] = await Promise.all([
+      api.list('personas'),
+      api.list('proyectos')
+    ]);
+    people = people.filter(p => !p.eliminado);
+    projects = projects.filter(p => !p.eliminado);
+    render();
+  }catch(e){
+    $('#peopleList').innerHTML = '<div class="empty error">No se pudo cargar la base: '+esc(e.message)+'</div>';
   }
+}
 
-  if(document.querySelector('#new'))document.querySelector('#new').onclick=()=>openForm(entity);
-  if(document.querySelector('#upload'))document.querySelector('#upload').onclick=openUpload;
-  bindRowActions(entity,rows);
+async function createPerson(data){
+  try{
+    return await api.create('personas', data);
+  }catch(e){
+    if(!/No autorizado|401/i.test(e.message)) throw e;
+    const token = prompt('Token de administración de MESA');
+    if(!token) throw e;
+    api.setToken(token);
+    return api.create('personas', data);
+  }
 }
-function bindRowActions(entity,rows){
-  document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>openForm(entity,rows.find(r=>r.id===b.dataset.edit)));
-  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(confirm(`Dar de baja lógica ${b.dataset.del}?`)){await api.remove(entity,b.dataset.del);go(entity)}});
-}
-function uniqueValues(rows,key){
-  return [...new Set(rows.map(r=>String(r[key]||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
-}
-function options(rows,key){
-  return uniqueValues(rows,key).map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
-}
-function personFilters(rows){
-  return `<div class="card" style="margin:16px 0">
-    <div class="grid">
-      <div class="field"><label>Buscar persona</label><input id="personFilterText" data-person-filter placeholder="Nombre, especialidad, sector, ciudad…"></div>
-      <div class="field"><label>Profesión</label><select id="personFilterProfession" data-person-filter><option value="">Todas</option>${options(rows,'profesion')}</select></div>
-      <div class="field"><label>Departamento</label><select id="personFilterDepartment" data-person-filter><option value="">Todos</option>${options(rows,'departamento')}</select></div>
-      <div class="field"><label>Seniority</label><select id="personFilterSeniority" data-person-filter><option value="">Todos</option>${options(rows,'seniority')}</select></div>
-      <div class="field"><label>Estado</label><select id="personFilterState" data-person-filter><option value="">Todos</option>${options(rows,'estado')}</select></div>
-      <div class="field"><label>Tecnología</label><input id="personFilterTech" data-person-filter placeholder="React, hardware, Python…"></div>
-    </div>
-    <div class="actions" style="margin-top:12px"><button class="secondary" id="clearPersonFilters">Limpiar filtros</button></div>
-  </div>`;
-}
-function table(rows,cols,entity){ if(!rows.length)return '<div class="table-wrap"><div class="empty">Sin información todavía.</div></div>'; return `<div class="table-wrap"><table><thead><tr>${cols.map(c=>`<th>${esc(c)}</th>`).join('')}<th>Acciones</th></tr></thead><tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td>${c==='url'&&r[c]?`<a href="${esc(r[c])}" target="_blank">Abrir</a>`:esc(r[c])}</td>`).join('')}<td><div class="actions">${formFields[entity]?`<button class="secondary" data-edit="${esc(r.id)}">Editar</button>`:''}<button class="danger" data-del="${esc(r.id)}">Baja</button></div></td></tr>`).join('')}</tbody></table></div>`; }
 
-function openForm(entity,row={}){ const modal=document.querySelector('#modal'); document.querySelector('#modalTitle').textContent=`${row.id?'Editar':'Nuevo'} ${labels[entity]}`; document.querySelector('#modalBody').innerHTML=`<div class="grid">${formFields[entity].map(f=>field(f,row[f]??'')).join('')}</div>`; const form=document.querySelector('#modalForm'); form.onsubmit=async e=>{e.preventDefault(); if(e.submitter?.value==='cancel'){modal.close();return} const fd=new FormData(form); const data={}; for(const f of formFields[entity]) data[f]=fd.get(f)||''; try{ row.id?await api.update(entity,row.id,data):await api.create(entity,data); modal.close(); go(entity); }catch(err){alert(err.message)} }; modal.showModal(); }
-function field(name,value){ const long=/descripcion|experiencia|evidencia|observaciones|preguntas|detalle|notas|proximos|necesidades|validaciones|integrantes|roles|capacidades_/i.test(name); return `<div class="field"><label>${esc(name)}</label>${long?`<textarea name="${esc(name)}">${esc(value)}</textarea>`:`<input name="${esc(name)}" value="${esc(value)}">`}</div>`; }
-function openUpload(){ const modal=document.querySelector('#modal'); document.querySelector('#modalTitle').textContent='Subir documento a Google Drive'; document.querySelector('#modalBody').innerHTML='<div class="grid"><div class="field"><label>Archivo</label><input name="file" type="file" required></div><div class="field"><label>Persona ID</label><input name="persona_id"></div><div class="field"><label>Proyecto ID</label><input name="proyecto_id"></div><div class="field"><label>Origen</label><input name="origen" value="carga manual"></div></div>'; const form=document.querySelector('#modalForm'); form.onsubmit=async e=>{e.preventDefault();if(e.submitter?.value==='cancel'){modal.close();return}try{await api.uploadDocument(new FormData(form));modal.close();go('documentos')}catch(err){alert(err.message)}}; modal.showModal(); }
+$('#personForm').addEventListener('submit', async e => {
+  e.preventDefault();
 
-async function searchGlobal(){ const q=document.querySelector('#globalSearch').value.trim(); if(!q)return; title.textContent='Búsqueda'; subtitle.textContent=`Resultados para “${q}”`; app.innerHTML='<div class="content"><div class="empty">Buscando…</div></div>'; try{const d=await api.search(q); app.innerHTML=`<div class="content">${d.results.length?d.results.map(x=>`<div class="card" style="margin-bottom:10px"><span class="badge">${esc(x.entity)}</span><h3>${esc(x.label)}</h3><small>${esc(x.id)}</small></div>`).join(''):'<div class="empty">Sin resultados.</div>'}</div>`}catch(e){fail(e)} }
-async function settings(){ let h; try{h=await api.health()}catch(e){h={ok:false,error:e.message}} app.innerHTML=`<div class="content"><div class="card"><h3>Estado</h3><pre>${esc(JSON.stringify(h,null,2))}</pre><div class="actions"><button id="bootstrap">Inicializar hojas</button><button class="secondary" id="setToken">Cambiar token de sesión</button></div><p class="muted">Los secretos Google y Cloudflare nunca se guardan en el navegador ni en GitHub. El token de administración solo vive en sessionStorage y desaparece al cerrar la sesión del navegador.</p></div></div>`; document.querySelector('#bootstrap').onclick=async()=>{try{const r=await api.bootstrap();alert(`Hojas verificadas: ${r.sheets.join(', ')}`)}catch(e){alert(e.message)}}; document.querySelector('#setToken').onclick=document.querySelector('#authBtn').onclick; }
-const initial=(location.hash||'#dashboard').slice(1); go(views.includes(initial)?initial:'dashboard');
+  const nombre = $('#name').value.trim();
+  const email = $('#email').value.trim();
+  const proyecto = $('#project').value.trim();
+  const status = $('#formStatus');
+
+  status.textContent = 'Guardando…';
+
+  try{
+    const person = await createPerson({
+      nombre_completo: nombre,
+      email,
+      tiene_proyecto_propio: proyecto ? 'Sí — '+proyecto : '',
+      estado: 'Activo',
+      origen_informacion: 'carga manual'
+    });
+
+    if(proyecto){
+      await api.create('proyectos',{
+        nombre: proyecto,
+        creador_id: person.id,
+        responsables: person.id,
+        etapa: 'Por determinar',
+        estado: 'Activo',
+        origen_informacion: 'carga manual'
+      });
+    }
+
+    e.target.reset();
+    status.textContent = 'Guardado.';
+    await load();
+  }catch(err){
+    status.textContent = 'No se pudo guardar: '+err.message;
+  }
+});
+
+$('#search').addEventListener('input', render);
+load();
