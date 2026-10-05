@@ -19,12 +19,26 @@ async function audit(env, entity,id,action,origin,detail=''){ const cfg=ENTITY_C
 
 async function listEntity(env,entity, includeDeleted=false){ const cfg=ENTITY_CONFIG[entity]; const rows=await listRows(env,cfg); return includeDeleted ? rows : rows.filter(r=>!deleted(r.eliminado)); }
 async function findById(env,entity,id){ return (await listRows(env,ENTITY_CONFIG[entity])).find(r=>String(r.id)===String(id)); }
+function publicPerson(r){ return {id:r.id,nombre_completo:r.nombre_completo||[r.nombre,r.apellido].filter(Boolean).join(' '),profesion:r.profesion||'',especialidad:r.especialidad||'',tiene_proyecto_propio:r.tiene_proyecto_propio||'',estado:r.estado||'Activo'}; }
+function publicProject(r){ return {id:r.id,nombre:r.nombre||'',creador_id:r.creador_id||'',descripcion:r.descripcion||'',sector:r.sector||'',etapa:r.etapa||'',estado:r.estado||'Activo'}; }
 
 async function crud(env, req, entity, id){
   const cfg=ENTITY_CONFIG[entity];
   if(req.method==='GET'){
-    if(id){ const row=await findById(env,entity,id); return row && !deleted(row.eliminado) ? json(cleanRow(row)) : json({error:'No encontrado'},404); }
-    return json((await listEntity(env,entity)).map(cleanRow));
+    const isAdmin=authorized(env,req);
+    if(id){
+      const row=await findById(env,entity,id);
+      if(!row || deleted(row.eliminado)) return json({error:'No encontrado'},404);
+      if(isAdmin) return json(cleanRow(row));
+      if(entity==='personas') return json(publicPerson(row));
+      if(entity==='proyectos') return json(publicProject(row));
+      return json({error:'No autorizado'},401);
+    }
+    const rows=await listEntity(env,entity);
+    if(isAdmin) return json(rows.map(cleanRow));
+    if(entity==='personas') return json(rows.map(publicPerson));
+    if(entity==='proyectos') return json(rows.map(publicProject));
+    return json({error:'No autorizado'},401);
   }
   if(!authorized(env,req)) return json({error:'No autorizado'},401);
   if(req.method==='POST'){
@@ -42,6 +56,72 @@ async function crud(env, req, entity, id){
     const rec={...cleanRow(current),eliminado:true,estado:'Eliminado',fecha_actualizacion:now()}; await updateRecord(env,cfg,current.__row,rec); await audit(env,entity,id,'baja lógica','carga manual'); return json({ok:true,id});
   }
   return json({error:'Método no permitido'},405);
+}
+
+async function selfSave(env, req){
+  const body=await req.json();
+  const email=String(body.email||'').trim().toLowerCase();
+  const nombre=String(body.nombre_completo||'').trim();
+  if(!nombre) return json({error:'El nombre es obligatorio'},400);
+  if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return json({error:'Ingresá un correo válido'},400);
+
+  const cfg=ENTITY_CONFIG.personas;
+  const rows=await listRows(env,cfg);
+  let current=rows.find(r=>String(r.email||'').trim().toLowerCase()===email && !deleted(r.eliminado));
+  const ts=now();
+  const allowed={
+    nombre_completo:nombre,
+    email,
+    profesion:String(body.profesion||'').trim(),
+    especialidad:String(body.especialidad||'').trim(),
+    puede_aportar:String(body.puede_aportar||'').trim(),
+    busca:String(body.busca||'').trim(),
+    tiene_proyecto_propio:String(body.proyecto||'').trim() ? 'Sí — '+String(body.proyecto).trim() : (current?.tiene_proyecto_propio||''),
+    estado:'Activo',
+    fecha_actualizacion:ts,
+    origen_informacion:'autocarga web'
+  };
+
+  let person;
+  if(current){
+    person={...cleanRow(current)};
+    for(const [k,v] of Object.entries(allowed)) if(v!=='' || ['especialidad','puede_aportar','busca'].includes(k)) person[k]=v;
+    await updateRecord(env,cfg,current.__row,person);
+    await audit(env,'personas',person.id,'autocarga/editar','autocarga web');
+  }else{
+    person={...allowed,id:nextId(rows,cfg.prefix),fecha_incorporacion:ts,eliminado:false};
+    await appendRecord(env,cfg,person);
+    await audit(env,'personas',person.id,'autocarga/crear','autocarga web');
+  }
+
+  const proyecto=String(body.proyecto||'').trim();
+  if(proyecto){
+    const pcfg=ENTITY_CONFIG.proyectos;
+    const prows=await listRows(env,pcfg);
+    const existing=prows.find(p=>String(p.creador_id||'')===String(person.id) && !deleted(p.eliminado));
+    const pdata={
+      nombre:proyecto,
+      creador_id:person.id,
+      responsables:person.id,
+      descripcion:String(body.descripcion_proyecto||'').trim(),
+      sector:String(body.sector||'').trim(),
+      etapa:String(body.etapa||'').trim()||existing?.etapa||'Por determinar',
+      estado:'Activo',
+      fecha_actualizacion:ts,
+      origen_informacion:'autocarga web',
+      eliminado:false
+    };
+    if(existing){
+      const prec={...cleanRow(existing),...pdata,id:existing.id};
+      await updateRecord(env,pcfg,existing.__row,prec);
+      await audit(env,'proyectos',existing.id,'autocarga/editar','autocarga web');
+    }else{
+      const prec={...pdata,id:nextId(prows,pcfg.prefix)};
+      await appendRecord(env,pcfg,prec);
+      await audit(env,'proyectos',prec.id,'autocarga/crear','autocarga web');
+    }
+  }
+  return json({ok:true,persona:publicPerson(person)});
 }
 
 async function bootstrap(env, req){
@@ -85,6 +165,7 @@ export default { async fetch(req, env){
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     await ensureStore(env,ENTITY_CONFIG);
     if(path==='/api/health') return json({ok:true,service:'MESA API',storage:env.DB?'d1':'google',storageConfigured:Boolean(env.DB||(env.GOOGLE_SPREADSHEET_ID&&env.GOOGLE_REFRESH_TOKEN))},200,h);
+    if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
     if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await recomputeMatches(env,req); return withHeaders(r,h); }
     if(path==='/api/search'&&req.method==='GET') { const r=await globalSearch(env,url.searchParams.get('q')); return withHeaders(r,h); }
