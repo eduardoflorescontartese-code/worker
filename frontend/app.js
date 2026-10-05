@@ -56,9 +56,11 @@ function mapModel(data){
     members.forEach((token,i)=>{const person=personByToken(token,people);if(!person)return;const key=person.id+'|'+project.id;if(seen.has(key))return;seen.add(key);edges.push({personId:person.id,projectId:project.id,type:'team',score:100,label:roleFor(team,person,i),teamId:team.id,teamName:team.nombre||team.id})});
   }
   for(const m of matches){
+    if(['descartado','rechazado','eliminado'].includes(textNorm(m.estado)))continue;
     const person=personMap.get(String(m.persona_id||'')),project=projectMap.get(String(m.proyecto_id||''));if(!person||!project)continue;
     const key=person.id+'|'+project.id;if(seen.has(key))continue;seen.add(key);
-    edges.push({personId:person.id,projectId:project.id,type:'match',score:Number(m.puntuacion||0),label:m.explicacion||('Match '+Number(m.puntuacion||0)+'%'),matchId:m.id});
+    const confirmed=textNorm(m.estado)==='confirmado';
+    edges.push({personId:person.id,projectId:project.id,type:confirmed?'team':'match',score:Number(m.puntuacion||0),label:m.explicacion||('Match '+Number(m.puntuacion||0)+'%'),matchId:confirmed?'':m.id});
   }
   return{people,projects,teams,matches,personMap,projectMap,edges};
 }
