@@ -82,6 +82,8 @@ export default { async fetch(req, env){
   const h=cors(env,req); if(req.method==='OPTIONS') return new Response(null,{status:204,headers:h});
   try{
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
+    if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
+    await ensureStore(env,ENTITY_CONFIG);
     if(path==='/api/health') return json({ok:true,service:'MESA API',storage:env.DB?'d1':'google',storageConfigured:Boolean(env.DB||(env.GOOGLE_SPREADSHEET_ID&&env.GOOGLE_REFRESH_TOKEN))},200,h);
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
     if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await recomputeMatches(env,req); return withHeaders(r,h); }
