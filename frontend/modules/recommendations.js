@@ -1,12 +1,59 @@
 export function createRecommendations({$, esc, getDashboard, onSelectMatch}){
-  const clamp=n=>Math.max(0,Math.min(100,Number(n)||0));
+  const clamp100=n=>Math.max(0,Math.min(100,Number(n)||0));
+  const scale7=m=>{
+    const direct=Number(m?.escala_general);
+    if(direct>0)return Number(direct.toFixed(1));
+    return Number((1+(clamp100(m?.puntuacion)/100)*6).toFixed(1));
+  };
+
   const groups=[
-    {label:'Conectar ahora',color:'green',icon:'◉',min:70,max:101,action:'Ver conexión',note:'Encaje alto según las señales disponibles.'},
-    {label:'Invitar a reunión',color:'blue',icon:'▣',min:55,max:70,action:'Revisar candidato',note:'Buen potencial; conviene validar objetivos en conversación.'},
-    {label:'Pedir más datos',color:'orange',icon:'?',min:40,max:55,action:'Revisar información',note:'Hay complementariedad, pero faltan señales para priorizar.'},
-    {label:'Seguimiento',color:'purple',icon:'⌕',min:30,max:40,action:'Mantener visible',note:'Puede ganar relevancia cuando aparezca nueva información.'},
-    {label:'No prioritario',color:'red',icon:'×',min:0,max:30,action:'Revisar después',note:'Encaje bajo con la información actualmente disponible.'}
+    {
+      label:'Conectar ahora',
+      color:'green',
+      icon:'♙',
+      min:5.8,max:7.1,
+      action:'Conectar ahora',
+      subtitle:'Alto encaje y oportunidad concreta.',
+      bullets:['Intereses muy alineados','Puede aportar valor inmediato','Ambos con disponibilidad']
+    },
+    {
+      label:'Invitar a reunión',
+      color:'blue',
+      icon:'▣',
+      min:5,max:5.8,
+      action:'Invitar a reunión',
+      subtitle:'Buen encaje con potencial.',
+      bullets:['Complementariedad clara','Vale la pena profundizar','Verificar plazos y condiciones']
+    },
+    {
+      label:'Pedir más datos',
+      color:'orange',
+      icon:'▤',
+      min:4,max:5,
+      action:'Solicitar más datos',
+      subtitle:'Encaje medio, faltan datos clave.',
+      bullets:['Faltan detalles de recursos','Alinear expectativas','Consultar disponibilidad']
+    },
+    {
+      label:'Seguimiento',
+      color:'purple',
+      icon:'◷',
+      min:3,max:4,
+      action:'Agregar a seguimiento',
+      subtitle:'Interesante para el futuro.',
+      bullets:['Buen potencial a mediano plazo','Notificar si hay novedades','Revisar en 1-2 meses']
+    },
+    {
+      label:'No prioritario',
+      color:'red',
+      icon:'⊘',
+      min:1,max:3,
+      action:'Marcar como no prioritario',
+      subtitle:'Bajo encaje en este momento.',
+      bullets:['Objetivos poco alineados','Diferencias en tiempos o foco','Mantener en radar general']
+    }
   ];
+
   let grouped=[];
 
   function render(){
@@ -15,27 +62,41 @@ export function createRecommendations({$, esc, getDashboard, onSelectMatch}){
     const c=d.counts||{};
 
     $('#sideMatches').textContent=c.matches||0;
-    $('#sideFollow').textContent=all.filter(m=>['contactado','conversando','seguimiento'].includes(String(m.estado||'').toLowerCase())).length;
+    $('#sideFollow').textContent=all.filter(m=>
+      ['contactado','conversando','seguimiento'].includes(String(m.estado||'').toLowerCase())
+    ).length;
     $('#sideTeams').textContent=c.equipos||0;
+
+    const badge=$('#notificationBadge');
+    if(badge){
+      const n=Number(c.matches||0);
+      badge.textContent=n>99?'99+':String(n);
+      badge.hidden=n===0;
+    }
 
     grouped=groups.map(def=>({
       def,
       items:all.filter(m=>{
-        const s=clamp(m.puntuacion);
+        const s=scale7(m);
         return s>=def.min&&s<def.max;
-      }).sort((a,b)=>clamp(b.puntuacion)-clamp(a.puntuacion))
+      }).sort((a,b)=>scale7(b)-scale7(a))
     }));
 
     $('#recommendationList').innerHTML=grouped.map((g,index)=>{
       const best=g.items[0];
-      const score=best?clamp(best.puntuacion):null;
-      const title=best
-        ? [best.persona?.nombre_completo,best.proyecto?.nombre].filter(Boolean).join(' ↔ ')
-        : 'Sin coincidencias en este nivel';
+      const score=best?scale7(best):null;
+
       return '<section class="recommendation-card '+g.def.color+'">'+
-        '<div class="rec-head"><div class="rec-icon">'+g.def.icon+'</div><div><strong>'+g.def.label+'</strong><small>'+esc(title)+'</small></div><span class="rec-score">'+(score===null?'—':score+'%')+'</span></div>'+
-        '<button class="rec-action" data-rec-group="'+index+'" '+(best?'':'disabled')+'>'+g.def.action+(g.items.length?' · '+g.items.length:'')+'</button>'+
-        '<div class="rec-note">'+g.def.note+'</div></section>';
+        '<div class="rec-head">'+
+          '<div class="rec-icon">'+g.def.icon+'</div>'+
+          '<div><strong>'+g.def.label+'</strong><small>'+g.def.subtitle+'</small></div>'+
+          '<span class="rec-score">'+(score===null?'—':score.toFixed(1))+'</span>'+
+        '</div>'+
+        '<button class="rec-action" data-rec-group="'+index+'" '+(best?'':'disabled')+'>'+
+          g.def.action+
+        '</button>'+
+        '<div class="rec-bullets">'+g.def.bullets.map(x=>'<div>✓ '+esc(x)+'</div>').join('')+'</div>'+
+      '</section>';
     }).join('');
   }
 
