@@ -5,7 +5,7 @@ function entityKey(cfg){
 }
 
 async function ensureD1Store(env){
-  if(!env.DB) throw new Error('Cloudflare D1 no está configurado para MESA');
+  if(!env.DB) throw new Error('D1 no está configurado para MESA');
   await env.DB.prepare(`CREATE TABLE IF NOT EXISTS ${D1_TABLE} (
     entity TEXT NOT NULL,
     id TEXT NOT NULL,
@@ -14,6 +14,8 @@ async function ensureD1Store(env){
     updated_at TEXT NOT NULL,
     PRIMARY KEY(entity,id)
   )`).run();
+  await env.DB.prepare(`CREATE INDEX IF NOT EXISTS idx_mesa_v2_records_entity_updated
+    ON ${D1_TABLE}(entity, updated_at DESC)`).run();
 }
 
 export async function ensureStore(env){
