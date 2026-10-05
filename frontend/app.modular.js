@@ -2,6 +2,9 @@ import { api } from './api.js';
 import { createNavigation } from './modules/navigation.js';
 import { createIntake } from './modules/intake.js';
 import { createAdmin } from './modules/admin.js';
+import { createSuggestions } from './modules/suggestions.js';
+import { createMatchingView } from './modules/matching-view.js';
+import { createRecommendations } from './modules/recommendations.js';
 
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
@@ -23,6 +26,9 @@ let lastSearchResults=[];
 let navigation;
 let intake;
 let admin;
+let suggestions;
+let matchingView;
+let recommendations;
 
 function hashParams(){
   const p=new URLSearchParams((location.hash||'').replace(/^#/,''));
@@ -39,68 +45,9 @@ function renderDashboard(){
     'Conexiones con potencial real',
     'La MESA cruza capacidades y necesidades para detectar colaboraciones útiles.'
   );
-
-  const c=dashboard.counts||{};
-  $('#peopleCount').textContent=c.personas||0;
-  $('#projectCount').textContent=c.proyectos||0;
-  $('#needsCount').textContent=c.necesidades||0;
-  $('#impactPeople').textContent=c.personas||0;
-  $('#impactProjects').textContent=c.proyectos||0;
-  $('#impactMatches').textContent=c.matches||0;
-
-  $('#peopleSuggestions').innerHTML=dashboard.personas?.length
-    ? dashboard.personas.map(p=>
-      '<div class="suggestion-item"><strong>'+esc(p.nombre_completo||'Persona')+
-      '</strong><span>'+esc([p.profesion,p.especialidad].filter(Boolean).join(' · ')||'Perfil en MESA')+
-      '</span></div>'
-    ).join('')
-    : emptyMini('Sin personas todavía');
-
-  $('#projectSuggestions').innerHTML=dashboard.proyectos?.length
-    ? dashboard.proyectos.map(p=>
-      '<div class="suggestion-item"><strong>'+esc(p.nombre||'Proyecto')+
-      '</strong><span>'+esc([p.sector,p.etapa].filter(Boolean).join(' · ')||'Proyecto en MESA')+
-      '</span></div>'
-    ).join('')
-    : emptyMini('Sin proyectos todavía');
-
-  $('#needSuggestions').innerHTML=dashboard.necesidades?.length
-    ? dashboard.necesidades.map(n=>
-      '<div class="suggestion-item"><strong>'+esc(n.categoria||'Necesidad')+
-      '</strong><span>'+esc(n.necesidad||'')+'</span></div>'
-    ).join('')
-    : emptyMini('Sin necesidades todavía');
-
-  const list=$('#matchesList');
-  if(dashboard.matches?.length){
-    list.innerHTML=dashboard.matches.map(m=>{
-      const title=[m.persona?.nombre_completo,m.proyecto?.nombre]
-        .filter(Boolean).join(' ↔ ')||'Conexión sugerida';
-      return '<article class="match-card"><div><h3>'+esc(title)+
-        '</h3><p>'+esc(m.explicacion||'MESA detectó una posible complementariedad.')+
-        '</p><div class="match-meta"><span class="tag">'+esc(m.semaforo||'sugerido')+
-        '</span><span class="tag">'+esc(m.estado||'sugerido')+
-        '</span></div></div><div class="score">'+esc(m.puntuacion||0)+'%</div></article>';
-    }).join('');
-  }else{
-    list.innerHTML='<div class="empty-state"><div><div class="empty-icon">◎</div>'+
-      '<h3>Los matches empiezan con la comunidad</h3>'+
-      '<p>A medida que personas y proyectos carguen sus capacidades y necesidades, MESA va a detectar conexiones reales.</p>'+
-      '<button class="primary-btn open-intake">Subir mi proyecto</button></div></div>';
-    intake.bindButtons();
-  }
-
-  const featured=$('#featuredProject');
-  if(dashboard.proyectos?.length){
-    const p=dashboard.proyectos[0];
-    featured.innerHTML='<div class="featured-content"><span class="featured-badge">'+
-      esc(p.etapa||'Proyecto activo')+'</span><h3>'+esc(p.nombre)+
-      '</h3><p>'+esc(p.descripcion||p.sector||'Proyecto incorporado a MESA')+'</p></div>';
-  }else{
-    featured.innerHTML='<div class="featured-content"><span class="featured-badge">Esperando proyectos</span>'+
-      '<h3>Tu proyecto puede ser el primero</h3>'+
-      '<p>Cargalo gratis y empezá a buscar capacidades que te ayuden a avanzar.</p></div>';
-  }
+  suggestions.render();
+  matchingView.render();
+  recommendations.render();
 }
 
 async function loadDashboard(){
@@ -110,7 +57,8 @@ async function loadDashboard(){
     const view=navigation.getActiveView();
     if(view!=='inicio'&&view!=='matching')navigation.renderSection(view);
   }catch(err){
-    $('#matchesList').innerHTML='<div class="empty-state"><div><h3>No se pudo cargar MESA</h3><p>'+
+    $('#matchesList').innerHTML=
+      '<div class="empty-state"><div><h3>No se pudo cargar MESA</h3><p>'+
       esc(err.message)+'</p></div></div>';
   }
 }
@@ -169,13 +117,7 @@ function initPublicControls(){
 
   $$('.nav-item').forEach(button=>
     button.addEventListener('click',()=>
-      navigation.renderSection(button.dataset.nav||'inicio')
-    )
-  );
-
-  $$('.filter').forEach(button=>
-    button.addEventListener('click',()=>
-      navigation.renderSection(button.dataset.view||'matching')
+      navigation.renderSection(button.dataset.nav||'matching')
     )
   );
 
@@ -190,16 +132,45 @@ function initPublicControls(){
 }
 
 intake=createIntake({$, $$, api, hashParams, loadDashboard});
+
+matchingView=createMatchingView({
+  $, esc,
+  getDashboard:()=>dashboard,
+  bindIntakeButtons:intake.bindButtons
+});
+
 navigation=createNavigation({
   $, $$, esc,
   getDashboard:()=>dashboard,
   renderDashboard,
   bindIntakeButtons:intake.bindButtons
 });
+
+suggestions=createSuggestions({
+  $, $$, esc,
+  getDashboard:()=>dashboard
+});
+
+recommendations=createRecommendations({
+  $, esc,
+  getDashboard:()=>dashboard,
+  onSelectMatch:match=>{
+    navigation.setPanelHeader(
+      'MATCH RECOMENDADO',
+      'Conexión seleccionada',
+      'Detalle del match priorizado por MESA.'
+    );
+    matchingView.renderOne(match);
+  }
+});
+
 admin=createAdmin({$, api, esc, emptyMini});
 
 intake.init();
 admin.init();
+suggestions.init();
+matchingView.init();
+recommendations.init();
 initSearch();
 initPublicControls();
 
