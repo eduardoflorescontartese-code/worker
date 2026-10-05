@@ -16,5 +16,6 @@ export const api={
   search:q=>call(`/api/search?q=${encodeURIComponent(q)}`),
   recompute:()=>call('/api/matches/recompute',{method:'POST'}),
   bootstrap:()=>call('/api/admin/bootstrap',{method:'POST'}),
+  selfSave:data=>call('/api/self/persona',{method:'POST',body:JSON.stringify(data)}),
   uploadDocument:form=>call('/api/documentos/upload',{method:'POST',body:form})
 };
