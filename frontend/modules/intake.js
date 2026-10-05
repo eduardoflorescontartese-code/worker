@@ -68,8 +68,7 @@ export function createIntake({$, $$, api, hashParams, loadDashboard}){
           descripcion_proyecto:$('#projectDescription').value.trim(),
           busca:$('#needs').value.trim(),
           puede_aportar:$('#contribute').value.trim(),
-          edit_token:token,
-          website:$('#website')?.value||''
+          edit_token:token
         });
 
         localStorage.setItem(localKey(email),token);
