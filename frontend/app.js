@@ -28,14 +28,62 @@ function participantToken(email){
   return t;
 }
 
+function renderDashboard(data){
+  const c=data?.counts||{};
+  $('#peopleCount').textContent=String(c.personas ?? 0);
+  $('#projectCount').textContent=String(c.proyectos ?? 0);
+  $('#matchCount').textContent=String(c.matches ?? 0);
+
+  const suggestions=[
+    ...(data?.personas||[]).map(x=>({...x,_type:'Persona'})),
+    ...(data?.proyectos||[]).map(x=>({...x,_type:'Proyecto'}))
+  ].slice(0,5);
+  const box=$('#suggestionsList');
+  if(suggestions.length){
+    box.classList.add('has-data');
+    box.innerHTML=suggestions.map(x=>'<div class="suggestion-live"><strong>'+esc(x.nombre_completo||x.nombre||x.id)+'</strong><span>'+esc(x.profesion||x.sector||x.especialidad||x.etapa||'')+'</span><span class="tag">'+esc(x._type)+'</span></div>').join('');
+  }else{
+    box.classList.remove('has-data');
+    box.innerHTML='<div class="empty-icon">◎</div><strong>Tu red empieza acá</strong><p>Completá tu ficha para que MESA pueda detectar capacidades y necesidades compatibles.</p><button class="primary-button full" data-open-intake="profile">Completar mi ficha</button>';
+    box.querySelector('[data-open-intake]')?.addEventListener('click',()=>openIntake('profile'));
+  }
+
+  const opportunities=data?.proyectos||[];
+  const o=$('#opportunityList');
+  if(opportunities.length){
+    o.innerHTML=opportunities.slice(0,4).map(p=>'<div class="opportunity-live"><strong>'+esc(p.nombre||p.id)+'</strong><span>'+esc([p.sector,p.etapa].filter(Boolean).join(' · '))+'</span></div>').join('');
+  }else{
+    o.innerHTML='<span class="opportunity-icon">◇</span><strong>Sin oportunidades sugeridas</strong><p>A medida que se incorporen personas y proyectos, aparecerán acá conexiones relevantes.</p>';
+  }
+
+  const top=(data?.matches||[])[0];
+  if(top){
+    const person=top.persona,project=top.proyecto;
+    $('#leftMatchCard').innerHTML='<div class="placeholder-avatar">◎</div><div><strong>'+esc(person?.nombre_completo||top.persona_id||'Persona')+'</strong><span>'+esc(person?.profesion||person?.especialidad||'Capacidad disponible')+'</span></div>';
+    $('#rightMatchCard').innerHTML='<div class="project-placeholder">▱</div><div><strong>'+esc(project?.nombre||top.proyecto_id||'Proyecto')+'</strong><span>'+esc(project?.sector||project?.etapa||'Necesidad registrada')+'</span></div>';
+    $('#matchCoreTitle').textContent=(Number(top.puntuacion)||0)+' / 100';
+    $('#matchCoreSub').textContent=top.explicacion||'Match sugerido';
+  }else{
+    $('#leftMatchCard').innerHTML='<div class="placeholder-avatar">—</div><div><strong>Sin perfiles todavía</strong><span>Esperando nuevas cargas</span></div>';
+    $('#rightMatchCard').innerHTML='<div class="project-placeholder">—</div><div><strong>Sin proyectos todavía</strong><span>Esperando nuevas cargas</span></div>';
+    $('#matchCoreTitle').textContent='Sin matches todavía';
+    $('#matchCoreSub').textContent='La base nueva comienza vacía';
+  }
+}
+
 async function loadStats(){
   try{
-    const s=await api.stats();
-    $('#peopleCount').textContent=String(s.personas ?? 0);
-    $('#projectCount').textContent=String(s.proyectos ?? 0);
+    const d=await api.dashboard();
+    renderDashboard(d);
   }catch{
-    $('#peopleCount').textContent='—';
-    $('#projectCount').textContent='—';
+    try{
+      const s=await api.stats();
+      $('#peopleCount').textContent=String(s.personas ?? 0);
+      $('#projectCount').textContent=String(s.proyectos ?? 0);
+    }catch{
+      $('#peopleCount').textContent='—';
+      $('#projectCount').textContent='—';
+    }
   }
 }
 
@@ -111,10 +159,27 @@ $$('.nav-item').forEach(btn=>btn.addEventListener('click',()=>{
   else if(target==='personas') openIntake('profile');
 }));
 
+let searchTimer;
 $('#globalSearch').addEventListener('input',e=>{
-  const has=e.target.value.trim().length>0;
-  e.target.setAttribute('aria-label',has?'Búsqueda local pendiente de datos':'Buscar personas, proyectos o necesidades');
+  clearTimeout(searchTimer);
+  const q=e.target.value.trim();
+  const out=$('#searchResults');
+  if(q.length<2){out.hidden=true;out.innerHTML='';return}
+  searchTimer=setTimeout(async()=>{
+    try{
+      const r=await api.search(q);
+      const items=r.results||[];
+      out.innerHTML=items.length
+        ?items.slice(0,12).map(x=>'<div class="search-result"><strong>'+esc(x.label||x.id)+'</strong><span>'+esc(x.entity||'')+'</span></div>').join('')
+        :'<div class="search-empty">Sin resultados reales para “'+esc(q)+'”.</div>';
+      out.hidden=false;
+    }catch{
+      out.innerHTML='<div class="search-empty">No se pudo buscar en este momento.</div>';
+      out.hidden=false;
+    }
+  },220);
 });
+document.addEventListener('click',e=>{ if(!e.target.closest('.search-wrap')) $('#searchResults').hidden=true; });
 
 $('#selfForm').addEventListener('submit',async e=>{
   e.preventDefault();
