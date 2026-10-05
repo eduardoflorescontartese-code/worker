@@ -371,8 +371,27 @@ export default { async fetch(req, env){
   try{
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
+    if(path==='/api/health') {
+      const storage=googleConfigured(env)?'google':(env.DB?'d1':'none');
+      let storeReady=true, storeError='';
+      try{ await ensureStore(env,ENTITY_CONFIG); }catch(e){ storeReady=false; storeError=e?.message||String(e); }
+      return json({
+        ok:storeReady,
+        service:'MESA API',
+        storage,
+        storageConfigured:storage!=='none',
+        googleConfigured:googleConfigured(env),
+        googleConfig:{
+          clientId:Boolean(env.GOOGLE_CLIENT_ID),
+          clientSecret:Boolean(env.GOOGLE_CLIENT_SECRET),
+          refreshToken:Boolean(env.GOOGLE_REFRESH_TOKEN),
+          spreadsheetId:Boolean(env.GOOGLE_SPREADSHEET_ID),
+          driveFolderId:Boolean(env.GOOGLE_DRIVE_FOLDER_ID)
+        },
+        storeError
+      },200,h);
+    }
     await ensureStore(env,ENTITY_CONFIG);
-    if(path==='/api/health') { const storage=googleConfigured(env)?'google':(env.DB?'d1':'none'); return json({ok:true,service:'MESA API',storage,storageConfigured:storage!=='none',googleConfigured:googleConfigured(env),googleConfig:{clientId:Boolean(env.GOOGLE_CLIENT_ID),clientSecret:Boolean(env.GOOGLE_CLIENT_SECRET),refreshToken:Boolean(env.GOOGLE_REFRESH_TOKEN),spreadsheetId:Boolean(env.GOOGLE_SPREADSHEET_ID),driveFolderId:Boolean(env.GOOGLE_DRIVE_FOLDER_ID)}},200,h); }
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/public/dashboard'&&req.method==='GET') { const r=await publicDashboard(env); return withHeaders(r,h); }
     if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
