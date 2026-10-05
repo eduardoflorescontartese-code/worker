@@ -5,6 +5,7 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt
 
 let people = [];
 let projects = [];
+let matches = [];
 
 function hashParams(){
   const raw=(location.hash||'').replace(/^#/,'');
@@ -80,23 +81,40 @@ function projectCard(p){
   '</div>';
 }
 
+function matchCard(m){
+  const light=String(m.semaforo||'').toLowerCase();
+  const cls=['verde','amarillo','rojo'].includes(light)?light:'amarillo';
+  return '<div class="admin-row match-row">'+
+    '<div><div class="match-title"><span class="traffic '+cls+'"></span><strong>'+esc((m.puntuacion??0)+' / 100')+'</strong></div>'+
+    '<small>'+esc(m.explicacion||'Match sugerido')+'</small></div>'+
+    '<span class="id">'+esc(m.id||'')+'</span>'+
+  '</div>';
+}
+
 function renderAdmin(){
   const q=($('#adminSearch')?.value||'').trim().toLowerCase();
   const filtered=people.filter(p=>!q || Object.values(p).join(' ').toLowerCase().includes(q));
   $('#adminPeopleList').innerHTML=filtered.length?filtered.map(personCard).join(''):'<div class="empty">Sin personas.</div>';
   $('#adminProjectsList').innerHTML=projects.length?projects.map(projectCard).join(''):'<div class="empty">Sin proyectos.</div>';
+  const matchBox=$('#adminMatchesList');
+  if(matchBox){
+    const ordered=[...matches].sort((a,b)=>(Number(b.puntuacion)||0)-(Number(a.puntuacion)||0));
+    matchBox.innerHTML=ordered.length?ordered.map(matchCard).join(''):'<div class="empty">Todavía no hay matches calculados.</div>';
+  }
   $('#count').textContent=people.length;
 }
 
 async function loadAdmin(){
   try{
-    [people,projects]=await Promise.all([api.list('personas'),api.list('proyectos')]);
+    [people,projects,matches]=await Promise.all([api.list('personas'),api.list('proyectos'),api.list('matches')]);
     people=people.filter(p=>!p.eliminado);
     projects=projects.filter(p=>!p.eliminado);
+    matches=matches.filter(m=>!m.eliminado);
     renderAdmin();
   }catch(err){
     $('#adminPeopleList').innerHTML='<div class="empty error">'+esc(err.message)+'</div>';
     $('#adminProjectsList').innerHTML='<div class="empty error">'+esc(err.message)+'</div>';
+    if($('#adminMatchesList')) $('#adminMatchesList').innerHTML='<div class="empty error">'+esc(err.message)+'</div>';
   }
 }
 
@@ -148,7 +166,8 @@ $('#recomputeMatches').addEventListener('click',async()=>{
   b.textContent='Calculando…';
   try{
     const r=await api.recompute();
-    b.textContent='Matches nuevos: '+(r.created??0);
+    b.textContent='Nuevos: '+(r.created??0)+' · verdes: '+(r.verdes??0)+' · amarillos: '+(r.amarillos??0);
+    await loadAdmin();
   }catch(err){
     b.textContent='Error: '+err.message;
   }finally{
