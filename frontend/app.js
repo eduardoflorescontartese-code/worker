@@ -18,12 +18,17 @@ const app=document.querySelector('#app'), title=document.querySelector('#title')
 const nav=document.querySelector('#nav');
 for(const v of views){ const b=document.createElement('button'); b.textContent=labels[v]; b.dataset.view=v; b.onclick=()=>go(v); nav.appendChild(b); }
 
-document.querySelector('#authBtn').onclick=()=>{ const v=prompt('Token de administración de MESA (se guarda solo durante esta sesión):',''); if(v) api.setToken(v); };
+document.querySelector('#authBtn').onclick=async()=>{ const v=prompt('Token de administración de MESA (se guarda solo durante esta sesión):',''); if(v){api.setToken(v);if(current==='mapa')await liveMap();else go(current)} };
 document.querySelector('#searchBtn').onclick=searchGlobal; document.querySelector('#globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter')searchGlobal();});
 
 async function go(v){ if(mapTimer){clearInterval(mapTimer);mapTimer=null} current=v; location.hash=v; [...nav.children].forEach(b=>b.classList.toggle('active',b.dataset.view===v)); title.textContent=labels[v]; subtitle.textContent=v==='mapa'?'Quién va con quién, en qué proyecto y para hacer qué.':'Google Sheets es la fuente de verdad'; app.innerHTML='<div class="content"><div class="empty">Cargando…</div></div>'; try{ if(v==='mapa') await liveMap(); else if(v==='configuracion') await settings(); else await entityView(v); }catch(e){ fail(e); } }
 function esc(v){ return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
-function fail(e){ app.innerHTML=`<div class="content"><div class="notice error"><strong>Error:</strong> ${esc(e.message)}</div></div>`; }
+function fail(e){
+  const msg=String(e?.message||e||'Error inesperado');
+  const auth=/no autorizado|401/i.test(msg);
+  app.innerHTML='<div class="content"><div class="notice '+(auth?'':'error')+'"><strong>'+(auth?'Acceso requerido':'No se pudo completar la operación')+'</strong><p>'+(auth?'Ingresá el token de administración desde el botón “Acceso”. La información permanece en Google Sheets/Drive y no se perdió.':esc(msg))+'</p>'+(auth?'<button id="inline-auth">Ingresar acceso</button>':'')+'</div></div>';
+  const b=document.querySelector('#inline-auth');if(b)b.onclick=document.querySelector('#authBtn').onclick;
+}
 
 function textNorm(v){return String(v??'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
 function values(v){
