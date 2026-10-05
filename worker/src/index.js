@@ -68,7 +68,7 @@ async function selfSave(env, req){
   const nombre=String(body.nombre_completo||'').trim();
   const editToken=String(body.edit_token||'').trim();
   if(!nombre) return json({error:'El nombre es obligatorio'},400);
-  if(!/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return json({error:'Ingresá un correo válido'},400);
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({error:'Ingresá un correo válido'},400);
   if(editToken.length<20) return json({error:'Falta tu enlace personal de edición'},403);
 
   const tokenHash=await sha256Hex(editToken);
