@@ -29,7 +29,6 @@ Aplicación privada para administrar la Mesa Independiente de Proyectos.
 - `POST /api/matches/recompute`
 - `POST /api/documentos/upload`
 - `POST /api/admin/bootstrap`
-- `POST /api/admin/seed`
 
 Las escrituras requieren `Authorization: Bearer <MESA_ADMIN_TOKEN>`.
 
