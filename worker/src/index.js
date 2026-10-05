@@ -1,6 +1,5 @@
 import { ENTITY_CONFIG, PUBLIC_ENTITIES, normalizeEntityName, validateRecord } from './schema.js';
-import { uploadFileToDrive } from './google.js';
-import { ensureStore, listRows, appendRecord, updateRecord, googleConfigured } from './store.js';
+import { ensureStore, listRows, appendRecord, updateRecord } from './store.js';
 import { buildMatches } from './matching.js';
 
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
@@ -263,11 +262,33 @@ async function globalSearch(env, q){
 
 async function uploadDocument(env, req){
   if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
-  const form=await req.formData(); const file=form.get('file'); if(!(file instanceof File)) return json({error:'Falta archivo'},400);
-  const drive=await uploadFileToDrive(env,file,{name:file.name});
+  if(!env.DOCS) return json({error:'Cloudflare R2 no está configurado para documentos'},503);
+  const form=await req.formData();
+  const file=form.get('file');
+  if(!(file instanceof File)) return json({error:'Falta archivo'},400);
+  const key=`mesa/${Date.now()}-${crypto.randomUUID()}-${String(file.name||'archivo').replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
+  await env.DOCS.put(key,await file.arrayBuffer(),{httpMetadata:{contentType:file.type||'application/octet-stream'}});
   const cfg=ENTITY_CONFIG.documentos, rows=await listRows(env,cfg), ts=now();
-  const rec={id:nextId(rows,cfg.prefix),persona_id:form.get('persona_id')||'',proyecto_id:form.get('proyecto_id')||'',nombre:drive.name||file.name,tipo:drive.mimeType||file.type,drive_file_id:drive.id,url:drive.webViewLink||`https://drive.google.com/open?id=${drive.id}`,fecha:drive.createdTime||ts,origen:form.get('origen')||'carga manual',resumen:'',estado_analisis:'Pendiente',fecha_actualizacion:ts,origen_informacion:form.get('origen')||'carga manual',origen_referencia:'',eliminado:false};
-  await appendRecord(env,cfg,rec); await audit(env,'documentos',rec.id,'subir',rec.origen_informacion); return json(rec,201);
+  const rec={
+    id:nextId(rows,cfg.prefix),
+    persona_id:form.get('persona_id')||'',
+    proyecto_id:form.get('proyecto_id')||'',
+    nombre:file.name||'archivo',
+    tipo:file.type||'application/octet-stream',
+    drive_file_id:'',
+    url:`r2://DOCS/${key}`,
+    fecha:ts,
+    origen:form.get('origen')||'carga manual',
+    resumen:'',
+    estado_analisis:'Pendiente',
+    fecha_actualizacion:ts,
+    origen_informacion:form.get('origen')||'carga manual',
+    origen_referencia:key,
+    eliminado:false
+  };
+  await appendRecord(env,cfg,rec);
+  await audit(env,'documentos',rec.id,'subir',rec.origen_informacion);
+  return json(rec,201);
 }
 
 export default { async fetch(req, env){
@@ -276,7 +297,7 @@ export default { async fetch(req, env){
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     await ensureStore(env,ENTITY_CONFIG);
-    if(path==='/api/health') return json({ok:true,service:'MESA API',storage:googleConfigured(env)?'google':(env.DB?'d1':'none'),storageConfigured:Boolean(googleConfigured(env)||env.DB)},200,h);
+    if(path==='/api/health') return json({ok:true,service:'MESA API',storage:env.DB?'d1':'none',storageConfigured:Boolean(env.DB)},200,h);
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
