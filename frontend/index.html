@@ -20,12 +20,17 @@
       <div>
         <p class="eyebrow">MESA INDEPENDIENTE DE PROYECTOS</p>
         <h1>Personas</h1>
-        <p>Una ficha simple por persona: nombre, correo y proyecto.</p>
+        <p>Quién está participando, qué proyecto tiene y qué necesita para avanzar.</p>
       </div>
       <div class="counter"><strong id="count">0</strong><span>personas</span></div>
     </section>
 
-    <section class="layout">
+    <section class="public-note">
+      <strong>¿Querés sumarte o corregir tu ficha?</strong>
+      <p>Respondé al correo de MESA con tu área, proyecto, estado actual y qué necesitás para avanzar. La carga y edición se hacen desde coordinación.</p>
+    </section>
+
+    <section id="adminPanel" class="admin-panel" hidden>
       <form id="personForm" class="card intake">
         <h2>Agregar persona</h2>
         <label>Nombre
@@ -38,15 +43,14 @@
           <textarea id="project" name="project" placeholder="¿Qué proyecto tiene o qué quiere desarrollar?"></textarea>
         </label>
         <button type="submit">Guardar</button>
-        <p class="hint">Sin teléfono, sin dirección, sin redes sociales.</p>
         <p id="formStatus" class="status" aria-live="polite"></p>
       </form>
+    </section>
 
-      <section class="people">
-        <div id="peopleList" class="people-list">
-          <div class="empty">Cargando personas…</div>
-        </div>
-      </section>
+    <section class="people">
+      <div id="peopleList" class="people-list">
+        <div class="empty">Cargando personas…</div>
+      </div>
     </section>
   </main>
 
