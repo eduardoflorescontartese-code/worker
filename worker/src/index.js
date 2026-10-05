@@ -1,5 +1,5 @@
 import { ENTITY_CONFIG, PUBLIC_ENTITIES, normalizeEntityName, validateRecord } from './schema.js';
-import { ensureStore, listRows, appendRecord, updateRecord, googleConfigured } from './store.js';
+import { ensureStore, listRows, appendRecord, updateRecord, googleConfigured, googleRuntimeAvailable, googleRuntimeStatus } from './store.js';
 import { uploadFileToDrive } from './google.js';
 import { buildMatches } from './matching.js';
 
@@ -330,7 +330,7 @@ async function uploadDocument(env, req){
   const cfg=ENTITY_CONFIG.documentos, rows=await listRows(env,cfg), ts=now();
 
   let storageUrl='', driveFileId='', storedName=file.name||'archivo', storedType=file.type||'application/octet-stream', created=ts;
-  if(googleConfigured(env) && env.GOOGLE_DRIVE_FOLDER_ID){
+  if(googleRuntimeAvailable(env) && env.GOOGLE_DRIVE_FOLDER_ID){
     const drive=await uploadFileToDrive(env,file,{name:storedName});
     storageUrl=drive.webViewLink||`https://drive.google.com/open?id=${drive.id}`;
     driveFileId=drive.id||'';
@@ -372,15 +372,16 @@ export default { async fetch(req, env){
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     if(path==='/api/health') {
-      const storage=googleConfigured(env)?'google':(env.DB?'d1':'none');
-      let storeReady=true, storeError='';
-      try{ await ensureStore(env,ENTITY_CONFIG); }catch(e){ storeReady=false; storeError=e?.message||String(e); }
+      let storeReady=true, storeError='', store={backend:'none',googleError:''};
+      try{ store=await ensureStore(env,ENTITY_CONFIG); }catch(e){ storeReady=false; storeError=e?.message||String(e); }
+      const runtime=googleRuntimeStatus();
       return json({
         ok:storeReady,
         service:'MESA API',
-        storage,
-        storageConfigured:storage!=='none',
+        storage:store.backend||'none',
+        storageConfigured:(store.backend||'none')!=='none',
         googleConfigured:googleConfigured(env),
+        googleRuntimeAvailable:googleRuntimeAvailable(env),
         googleConfig:{
           clientId:Boolean(env.GOOGLE_CLIENT_ID),
           clientSecret:Boolean(env.GOOGLE_CLIENT_SECRET),
@@ -388,6 +389,7 @@ export default { async fetch(req, env){
           spreadsheetId:Boolean(env.GOOGLE_SPREADSHEET_ID),
           driveFolderId:Boolean(env.GOOGLE_DRIVE_FOLDER_ID)
         },
+        googleError:store.googleError||runtime.error||'',
         storeError
       },200,h);
     }
