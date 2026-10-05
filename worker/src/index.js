@@ -25,7 +25,6 @@ async function crud(env, req, entity, id){
     if(id){ const row=await findById(env,entity,id); return row && !deleted(row.eliminado) ? json(cleanRow(row)) : json({error:'No encontrado'},404); }
     return json((await listEntity(env,entity)).map(cleanRow));
   }
-  if(!authorized(env,req)) return json({error:'No autorizado'},401);
   if(req.method==='POST'){
     const body=validateRecord(entity,await req.json()); const rows=await listRows(env,cfg); const ts=now();
     const rec={...body,id:body.id||nextId(rows,cfg.prefix),fecha_actualizacion:ts,origen_informacion:body.origen_informacion||'carga manual',eliminado:false};
@@ -44,13 +43,11 @@ async function crud(env, req, entity, id){
 }
 
 async function bootstrap(env, req){
-  if(!authorized(env,req)) return json({error:'No autorizado'},401);
   await ensureSheets(env,ENTITY_CONFIG);
   return json({ok:true,sheets:Object.values(ENTITY_CONFIG).map(x=>x.sheet)});
 }
 
 async function recomputeMatches(env, req){
-  if(!authorized(env,req)) return json({error:'No autorizado'},401);
   const needs=await listEntity(env,'necesidades'); const caps=await listEntity(env,'capacidades'); const existing=await listEntity(env,'matches'); const cfg=ENTITY_CONFIG.matches;
   const known=new Set(existing.map(m=>`${m.necesidad_id}|${m.capacidad_id}`)); let created=0;
   for(const m of buildMatches(needs,caps)){
@@ -69,7 +66,6 @@ async function globalSearch(env, q){
 }
 
 async function uploadDocument(env, req){
-  if(!authorized(env,req)) return json({error:'No autorizado'},401);
   const form=await req.formData(); const file=form.get('file'); if(!(file instanceof File)) return json({error:'Falta archivo'},400);
   const drive=await uploadFileToDrive(env,file,{name:file.name});
   const cfg=ENTITY_CONFIG.documentos, rows=await listRows(env,cfg), ts=now();
@@ -82,6 +78,9 @@ export default { async fetch(req, env){
   try{
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(path==='/api/health') return json({ok:true,service:'MESA API',googleConfigured:Boolean(env.GOOGLE_SPREADSHEET_ID&&env.GOOGLE_REFRESH_TOKEN)},200,h);
+
+    if(path.startsWith('/api/') && !authorized(env,req)) return json({error:'No autorizado'},401,h);
+
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
     if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await recomputeMatches(env,req); return withHeaders(r,h); }
     if(path==='/api/search'&&req.method==='GET') { const r=await globalSearch(env,url.searchParams.get('q')); return withHeaders(r,h); }
