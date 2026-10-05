@@ -41,9 +41,9 @@ function hashParams(){
 
 function renderDashboard(){
   navigation.setPanelHeader(
-    'PANEL DE MATCHING',
-    'Conexiones con potencial real',
-    'La MESA cruza capacidades y necesidades para detectar colaboraciones útiles.'
+    '',
+    'Panel de Matching',
+    'La IA de MESA analiza perfiles, proyectos y necesidades para ayudarte a generar las mejores conexiones.'
   );
   suggestions.render();
   matchingView.render();
@@ -156,9 +156,9 @@ recommendations=createRecommendations({
   getDashboard:()=>dashboard,
   onSelectMatch:match=>{
     navigation.setPanelHeader(
-      'MATCH RECOMENDADO',
-      'Conexión seleccionada',
-      'Detalle del match priorizado por MESA.'
+      '',
+      'Panel de Matching',
+      'La IA de MESA analiza perfiles, proyectos y necesidades para ayudarte a generar las mejores conexiones.'
     );
     matchingView.renderOne(match);
   }
