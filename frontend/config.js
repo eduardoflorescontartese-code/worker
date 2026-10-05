@@ -1,3 +1,4 @@
 window.MESA_CONFIG = {
-  apiBaseUrl: 'http://localhost:8787'
+  // Same-origin API: frontend and Worker are deployed together by Cloudflare.
+  apiBaseUrl: ''
 };
