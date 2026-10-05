@@ -40,6 +40,24 @@ export async function getSpreadsheetMeta(env) {
   return (await gfetch(env, `${SHEETS_BASE}/${id}?fields=sheets.properties`)).json();
 }
 
+export async function ensureSheetHeaders(env, cfg) {
+  const current = await readRange(env, `${cfg.sheet}!1:1`);
+  let headers = current.values?.[0] || [];
+  if (!headers.length) {
+    const endCol=columnName(cfg.headers.length);
+    await writeRange(env, `${cfg.sheet}!A1:${endCol}1`, [cfg.headers]);
+    return [...cfg.headers];
+  }
+  const missing=cfg.headers.filter(h=>!headers.includes(h));
+  if(missing.length){
+    const start=columnName(headers.length+1);
+    const end=columnName(headers.length+missing.length);
+    await writeRange(env, `${cfg.sheet}!${start}1:${end}1`, [missing]);
+    headers=[...headers,...missing];
+  }
+  return headers;
+}
+
 export async function ensureSheets(env, entityConfig) {
   const id = envRequired(env,'GOOGLE_SPREADSHEET_ID');
   const meta = await getSpreadsheetMeta(env);
@@ -47,11 +65,7 @@ export async function ensureSheets(env, entityConfig) {
   const addRequests = [];
   for (const cfg of Object.values(entityConfig)) if (!existing.has(cfg.sheet)) addRequests.push({addSheet:{properties:{title:cfg.sheet}}});
   if (addRequests.length) await gfetch(env, `${SHEETS_BASE}/${id}:batchUpdate`, {method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({requests:addRequests})});
-  for (const cfg of Object.values(entityConfig)) {
-    const current = await readRange(env, `${cfg.sheet}!1:1`);
-    const first = current.values?.[0] || [];
-    if (!first.length) await writeRange(env, `${cfg.sheet}!A1`, [cfg.headers]);
-  }
+  for (const cfg of Object.values(entityConfig)) await ensureSheetHeaders(env,cfg);
 }
 
 export async function readRange(env, range) {
@@ -72,6 +86,11 @@ export async function appendRow(env, sheet, row) {
   return (await gfetch(env,url,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({values:[row]})})).json();
 }
 
+export async function appendRecordRow(env,cfg,record){
+  const headers=await ensureSheetHeaders(env,cfg);
+  return appendRow(env,cfg.sheet,headers.map(h=>record[h]??''));
+}
+
 export async function listRows(env, cfg) {
   const data = await readRange(env, `${cfg.sheet}!A:ZZ`);
   const values = data.values || [];
@@ -85,8 +104,9 @@ export async function listRows(env, cfg) {
 }
 
 export async function updateRow(env, cfg, rowNumber, record) {
-  const row = cfg.headers.map(h => record[h] ?? '');
-  const endCol = columnName(cfg.headers.length);
+  const headers=await ensureSheetHeaders(env,cfg);
+  const row = headers.map(h => record[h] ?? '');
+  const endCol = columnName(headers.length);
   return writeRange(env, `${cfg.sheet}!A${rowNumber}:${endCol}${rowNumber}`, [row]);
 }
 
