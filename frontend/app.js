@@ -92,8 +92,8 @@ function emptyDirectory(title,copy){
 }
 
 function setActiveControls(view){
-  $('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.nav===view || (view==='matching'&&x.dataset.nav==='matching')));
-  $('.filter').forEach(x=>x.classList.toggle('active',x.dataset.view===view || (view==='inicio'&&x.dataset.view==='matching')));
+  $$('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.nav===view || (view==='matching'&&x.dataset.nav==='matching')));
+  $$('.filter').forEach(x=>x.classList.toggle('active',x.dataset.view===view || (view==='inicio'&&x.dataset.view==='matching')));
 }
 
 function renderSection(view){
@@ -214,8 +214,8 @@ $('#globalSearch').addEventListener('input',e=>{
 });
 
 $('#refreshDashboard').addEventListener('click',loadDashboard);
-$('.nav-item').forEach(b=>b.addEventListener('click',()=>renderSection(b.dataset.nav||'inicio')));
-$('.filter').forEach(b=>b.addEventListener('click',()=>renderSection(b.dataset.view||'matching')));
+$$('.nav-item').forEach(b=>b.addEventListener('click',()=>renderSection(b.dataset.nav||'inicio')));
+$$('.filter').forEach(b=>b.addEventListener('click',()=>renderSection(b.dataset.view||'matching')));
 $('#searchResults').addEventListener('click',e=>{
   const b=e.target.closest('[data-search-index]');
   if(b) renderSearchSelection(lastSearchResults[Number(b.dataset.searchIndex)]);
