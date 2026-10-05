@@ -1,3 +1,5 @@
+import { computeMatchFactors } from './match-factors.js';
+
 export function createMatchingService({
   ENTITY_CONFIG,
   listRows,
@@ -158,6 +160,7 @@ export function createMatchingService({
       if(m.need.entidad_tipo==='persona'&&m.capability.entidad_tipo==='proyecto'&&capOwner===String(m.need.entidad_id))continue;
 
       const all=await listRows(env,cfg);
+      const factors=computeMatchFactors(m.need,m.capability,m.score);
       const rec={
         id:nextId(all,cfg.prefix),
         origen_tipo:m.need.entidad_tipo,
@@ -174,6 +177,14 @@ export function createMatchingService({
         capacidad_id:m.capability.id,
         explicacion:m.explanation,
         puntuacion:m.score,
+        escala_general:factors.escala_general,
+        conocimiento:factors.conocimiento,
+        experiencia_sectorial:factors.experiencia_sectorial,
+        afinidad_problema:factors.afinidad_problema,
+        recursos:factors.recursos,
+        urgencia:factors.urgencia,
+        capacidad_ejecucion:factors.capacidad_ejecucion,
+        complementariedad:factors.complementariedad,
         semaforo:m.semaforo,
         estado:'sugerido',
         fecha:now(),

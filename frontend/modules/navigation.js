@@ -1,5 +1,5 @@
 export function createNavigation({$, $$, esc, getDashboard, renderDashboard, bindIntakeButtons}){
-  let activeView='inicio';
+  let activeView='matching';
 
   function setPanelHeader(kicker,title,subtitle){
     $('#panelKicker').textContent=kicker;
@@ -46,6 +46,15 @@ export function createNavigation({$, $$, esc, getDashboard, renderDashboard, bin
     }else if(view==='equipos'){
       setPanelHeader('EQUIPOS','Equipos que se van formando','Agrupaciones vinculadas a proyectos y capacidades concretas.');
       list.innerHTML=dashboard.equipos?.length?dashboard.equipos.map(x=>directoryCard(x.nombre||x.id,[x.estado,x.roles].filter(Boolean).join(' · '),x.proximos_pasos||x.notas||'',[x.proyecto_id])).join(''):emptyDirectory('Sin equipos todavía','MESA mostrará aquí los equipos cuando se formen.');
+    }else if(view==='organizaciones'){
+      setPanelHeader('ORGANIZACIONES','Organizaciones de la red','Este bloque queda listo para organizaciones reales; no se generan registros ficticios.');
+      list.innerHTML=emptyDirectory('Sin organizaciones todavía','Las organizaciones aparecerán cuando existan registros reales asociados a la comunidad.');
+    }else if(view==='red'){
+      const c=dashboard.counts||{};
+      setPanelHeader('RED','La red de MESA','Vista consolidada de personas, proyectos, capacidades, necesidades y equipos.');
+      list.innerHTML='<div class="metrics-board">'+[
+        ['Personas',c.personas||0],['Proyectos',c.proyectos||0],['Capacidades',c.capacidades||0],['Necesidades',c.necesidades||0],['Matches',c.matches||0],['Equipos',c.equipos||0]
+      ].map(([label,value])=>'<div class="metric-card"><strong>'+esc(value)+'</strong><span>'+esc(label)+'</span></div>').join('')+'</div>';
     }else if(view==='impacto'){
       const c=dashboard.counts||{};
       setPanelHeader('IMPACTO','Actividad real de MESA','Indicadores calculados únicamente con información registrada.');

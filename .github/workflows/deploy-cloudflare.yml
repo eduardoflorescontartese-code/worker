@@ -40,9 +40,10 @@ jobs:
           DASH="$(curl -sS "$BASE/api/public/dashboard")"
           echo "HEALTH=$HEALTH"
           echo "STATS=$STATS"
-          printf '%s' "$HOME" | grep -q "PANEL DE MATCHING"
-          printf '%s' "$HOME" | grep -q "Subir mi proyecto"
-          printf '%s' "$HOME" | grep -q "MESA abierta"
+          printf '%s' "$HOME" | grep -q "Panel de Matching"
+          printf '%s' "$HOME" | grep -q "Sugerencias para vos"
+          printf '%s' "$HOME" | grep -q "Recomendaciones de MESA"
+          printf '%s' "$HOME" | grep -q 'id="selfForm"'
           if printf '%s' "$HOME" | grep -Eqi "inici[aá] sesi[oó]n|login obligatorio|contraseña obligatoria"; then
             echo "La interfaz pública contiene una barrera de acceso inesperada"
             exit 1

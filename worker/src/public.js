@@ -25,6 +25,7 @@ export function createPublicApi({listEntity,json}){
     capacidad:r.capacidad||'',
     categoria:r.categoria||'',
     nivel:r.nivel||'',
+    evidencia:r.evidencia||'',
     estado:r.estado||'Disponible'
   });
 
@@ -47,6 +48,14 @@ export function createPublicApi({listEntity,json}){
     capacidad_id:r.capacidad_id||'',
     explicacion:r.explicacion||'',
     puntuacion:Number(r.puntuacion)||0,
+    escala_general:Number(r.escala_general)||0,
+    conocimiento:Number(r.conocimiento)||0,
+    experiencia_sectorial:Number(r.experiencia_sectorial)||0,
+    afinidad_problema:Number(r.afinidad_problema)||0,
+    recursos:Number(r.recursos)||0,
+    urgencia:Number(r.urgencia)||0,
+    capacidad_ejecucion:Number(r.capacidad_ejecucion)||0,
+    complementariedad:Number(r.complementariedad)||0,
     semaforo:r.semaforo||'',
     estado:r.estado||'sugerido',
     fecha:r.fecha||''
@@ -75,6 +84,8 @@ export function createPublicApi({listEntity,json}){
     ]);
     const peopleMap=new Map(people.map(p=>[String(p.id),publicPerson(p)]));
     const projectMap=new Map(projects.map(p=>[String(p.id),publicProject(p)]));
+    const needMap=new Map(needs.map(n=>[String(n.id),publicNeed(n)]));
+    const capMap=new Map(caps.map(x=>[String(x.id),publicCapability(x)]));
     const safeMatches=matches
       .map(publicMatch)
       .sort((a,b)=>b.puntuacion-a.puntuacion)
@@ -82,7 +93,9 @@ export function createPublicApi({listEntity,json}){
       .map(m=>({
         ...m,
         persona:peopleMap.get(String(m.persona_id))||null,
-        proyecto:projectMap.get(String(m.proyecto_id))||null
+        proyecto:projectMap.get(String(m.proyecto_id))||null,
+        necesidad:needMap.get(String(m.necesidad_id))||null,
+        capacidad:capMap.get(String(m.capacidad_id))||null
       }));
 
     return json({
