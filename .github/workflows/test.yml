@@ -12,4 +12,10 @@ jobs:
           node-version: 22
       - run: npm test
       - run: node --check frontend/app.js
+      - run: node --check frontend/app.modular.js
+      - run: node --check frontend/modules/navigation.js
+      - run: node --check frontend/modules/admin.js
+      - run: node --check frontend/modules/intake.js
       - run: node --check worker/src/index.js
+      - run: node --check worker/src/public.js
+      - run: node --check worker/src/matching-service.js
