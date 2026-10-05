@@ -141,6 +141,11 @@ async function publicStats(env){
   const projects=await listEntity(env,'proyectos');
   return json({personas:people.length,proyectos:projects.length});
 }
+async function publicPendingIds(env){
+  const people=await listEntity(env,'personas');
+  const ids=people.filter(p=>String(p.origen_informacion||'')!=='autocarga web').map(p=>p.id);
+  return json({ids});
+}
 
 async function bootstrap(env, req){
   if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
@@ -299,6 +304,7 @@ export default { async fetch(req, env){
     await ensureStore(env,ENTITY_CONFIG);
     if(path==='/api/health') return json({ok:true,service:'MESA API',storage:env.DB?'d1':'none',storageConfigured:Boolean(env.DB)},200,h);
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
+    if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
     if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await recomputeMatches(env,req); return withHeaders(r,h); }
