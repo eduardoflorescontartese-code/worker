@@ -9,59 +9,140 @@
 <body>
   <header class="topbar">
     <div class="brand"><strong>MESA</strong><span>Personas y proyectos</span></div>
-    <input id="search" type="search" placeholder="Buscar persona o proyecto">
+    <div id="modeBadge" class="mode-badge">Acceso participante</div>
   </header>
 
   <main>
     <section class="intro">
       <div>
         <p class="eyebrow">MESA INDEPENDIENTE DE PROYECTOS</p>
-        <h1>Personas</h1>
-        <p>Una red para conectar personas, proyectos, capacidades y necesidades concretas.</p>
+        <h1 id="mainTitle">Completá tu ficha</h1>
+        <p id="mainSubtitle">La información se usa para detectar conexiones útiles entre personas, capacidades, necesidades y proyectos.</p>
       </div>
       <div class="counter"><strong id="count">0</strong><span>personas</span></div>
     </section>
 
-    <section class="layout">
-      <form id="selfForm" class="card intake">
-        <h2>Completar o actualizar mi ficha</h2>
-        <p class="hint top-hint">Usá siempre el mismo correo. Si ya estás en MESA, tus datos se actualizan; si sos nuevo, se crea tu ficha.</p>
-        <label>Nombre y apellido
-          <input id="name" autocomplete="name" required>
-        </label>
-        <label>Correo electrónico
-          <input id="email" type="email" autocomplete="email" required>
-        </label>
-        <label>Área / profesión
-          <input id="profession" placeholder="Ej.: agronomía, software, diseño">
-        </label>
-        <label>Especialidad
-          <input id="specialty" placeholder="Tu foco principal">
-        </label>
-        <label>Proyecto o idea
-          <input id="project" placeholder="Dejalo vacío si querés colaborar sin proyecto propio">
-        </label>
-        <label>Etapa del proyecto
-          <input id="stage" placeholder="Idea, prototipo, piloto, ventas...">
-        </label>
-        <label>¿Qué necesitás para avanzar?
-          <textarea id="needs" placeholder="Personas, tecnología, financiación, contactos, validación, producción, comercialización..."></textarea>
-        </label>
-        <label>¿Qué podés aportar?
-          <textarea id="contribute" placeholder="Experiencia, conocimientos, contactos, tecnología, gestión..."></textarea>
-        </label>
+    <section id="participantArea">
+      <form id="selfForm" class="card intake wide-form">
+        <h2>Mi información</h2>
+        <p class="hint top-hint">Si recibiste un enlace personal, abrilo y usá el mismo correo. Si sos nuevo, completá esta ficha una sola vez.</p>
+
+        <div class="form-grid">
+          <label>Nombre y apellido
+            <input id="name" autocomplete="name" required>
+          </label>
+          <label>Correo electrónico
+            <input id="email" type="email" autocomplete="email" required>
+          </label>
+          <label>Área / profesión
+            <input id="profession" placeholder="Ej.: agronomía, software, diseño">
+          </label>
+          <label>Especialidad
+            <input id="specialty" placeholder="Tu foco principal">
+          </label>
+          <label>Proyecto o idea
+            <input id="project" placeholder="Dejalo vacío si querés colaborar sin proyecto propio">
+          </label>
+          <label>Etapa del proyecto
+            <input id="stage" placeholder="Idea, prototipo, piloto, ventas...">
+          </label>
+          <label>Sector
+            <input id="sector" placeholder="Agro, tecnología, alimentos, industria...">
+          </label>
+          <label class="span-2">Descripción breve del proyecto
+            <textarea id="projectDescription" placeholder="Qué problema resuelve y qué estás construyendo."></textarea>
+          </label>
+          <label class="span-2">¿Qué necesitás para avanzar?
+            <textarea id="needs" placeholder="Personas, tecnología, financiación, contactos, validación, producción, comercialización..."></textarea>
+          </label>
+          <label class="span-2">¿Qué podés aportar?
+            <textarea id="contribute" placeholder="Experiencia, conocimientos, contactos, tecnología, gestión..."></textarea>
+          </label>
+        </div>
+
         <button type="submit">Guardar mi información</button>
         <p id="formStatus" class="status" aria-live="polite"></p>
-        <p class="privacy">Tu correo y los datos internos no se muestran públicamente. La coordinación general queda reservada al administrador de MESA.</p>
+        <p class="privacy">Tu correo y la información interna no se muestran al resto de participantes. La coordinación de MESA revisa los datos y te contacta cuando encuentra un match útil.</p>
       </form>
 
-      <section class="people">
-        <div class="public-note">
-          <strong>Vista pública limitada</strong>
-          <p>Se muestran únicamente nombre, área y proyecto. Los datos de contacto y la información interna quedan fuera de esta vista.</p>
-        </div>
-        <div id="peopleList" class="people-list"><div class="empty">Cargando personas…</div></div>
+      <section class="public-note">
+        <strong>Privacidad y coordinación</strong>
+        <p>No hay directorio público de fichas. Cada participante carga o actualiza su propia información. La administración general queda reservada a Eduardo.</p>
       </section>
+    </section>
+
+    <section id="adminArea" hidden>
+      <div class="admin-toolbar card">
+        <div>
+          <h2>Administración de MESA</h2>
+          <p>Acceso privado. Acá podés ver, editar y eliminar fichas y proyectos.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button id="refreshAdmin" type="button">Actualizar</button>
+          <button id="recomputeMatches" type="button">Recalcular matches</button>
+        </div>
+      </div>
+
+      <div class="admin-grid">
+        <form id="adminPersonForm" class="card intake">
+          <h2>Editar persona</h2>
+          <input id="adminPersonId" type="hidden">
+          <label>Nombre
+            <input id="adminName">
+          </label>
+          <label>Correo
+            <input id="adminEmail" type="email">
+          </label>
+          <label>Profesión
+            <input id="adminProfession">
+          </label>
+          <label>Especialidad
+            <input id="adminSpecialty">
+          </label>
+          <label>Puede aportar
+            <textarea id="adminContribute"></textarea>
+          </label>
+          <label>Busca / necesita
+            <textarea id="adminNeeds"></textarea>
+          </label>
+          <button type="submit">Guardar cambios</button>
+          <p id="adminPersonStatus" class="status"></p>
+        </form>
+
+        <div class="card admin-list-card">
+          <div class="list-head">
+            <h2>Personas</h2>
+            <input id="adminSearch" type="search" placeholder="Buscar">
+          </div>
+          <div id="adminPeopleList" class="admin-list"></div>
+        </div>
+      </div>
+
+      <div class="admin-grid project-admin">
+        <form id="adminProjectForm" class="card intake">
+          <h2>Editar proyecto</h2>
+          <input id="adminProjectId" type="hidden">
+          <label>Nombre
+            <input id="adminProjectName">
+          </label>
+          <label>Sector
+            <input id="adminProjectSector">
+          </label>
+          <label>Etapa
+            <input id="adminProjectStage">
+          </label>
+          <label>Descripción
+            <textarea id="adminProjectDescription"></textarea>
+          </label>
+          <button type="submit">Guardar proyecto</button>
+          <p id="adminProjectStatus" class="status"></p>
+        </form>
+
+        <div class="card admin-list-card">
+          <h2>Proyectos</h2>
+          <div id="adminProjectsList" class="admin-list"></div>
+        </div>
+      </div>
     </section>
   </main>
 
