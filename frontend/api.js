@@ -9,6 +9,7 @@ export const api={
   setToken(v){ sessionStorage.setItem('mesa_admin_token',v); },
   clearToken(){ sessionStorage.removeItem('mesa_admin_token'); },
   health:()=>call('/api/health'),
+  graph:()=>call('/api/graph'),
   list:e=>call(`/api/${e}`), get:(e,id)=>call(`/api/${e}/${encodeURIComponent(id)}`),
   create:(e,data)=>call(`/api/${e}`,{method:'POST',body:JSON.stringify(data)}),
   update:(e,id,data)=>call(`/api/${e}/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify(data)}),
