@@ -47,20 +47,52 @@ export function normalizeEntityName(name) {
   return key;
 }
 
+function provided(record, key) {
+  return Object.prototype.hasOwnProperty.call(record, key);
+}
+
+function requiredWhenPresent(record, key, { partial }) {
+  return !partial || provided(record, key);
+}
+
 export function validateRecord(entity, record, { partial = false } = {}) {
   const cfg = ENTITY_CONFIG[entity];
   if (!cfg) throw new Error('Entidad inválida');
+  if (!record || typeof record !== 'object' || Array.isArray(record)) throw new Error('Registro inválido');
+
   const out = {};
   for (const h of cfg.headers) if (record[h] !== undefined) out[h] = record[h];
-  if (!partial && entity === 'personas' && !String(record.nombre_completo || '').trim()) throw new Error('nombre_completo es obligatorio');
-  if (!partial && entity === 'proyectos' && !String(record.nombre || '').trim()) throw new Error('nombre es obligatorio');
+
+  if (entity === 'personas' && requiredWhenPresent(record, 'nombre_completo', { partial }) && !String(record.nombre_completo || '').trim()) {
+    throw new Error('nombre_completo es obligatorio');
+  }
+  if (entity === 'proyectos' && requiredWhenPresent(record, 'nombre', { partial }) && !String(record.nombre || '').trim()) {
+    throw new Error('nombre es obligatorio');
+  }
+
   if (entity === 'capacidades') {
-    if (!['persona','proyecto'].includes(record.entidad_tipo)) throw new Error('entidad_tipo debe ser persona o proyecto');
-    if (!record.entidad_id || !record.capacidad) throw new Error('entidad_id y capacidad son obligatorios');
+    if (requiredWhenPresent(record, 'entidad_tipo', { partial }) && !['persona','proyecto'].includes(record.entidad_tipo)) {
+      throw new Error('entidad_tipo debe ser persona o proyecto');
+    }
+    if (requiredWhenPresent(record, 'entidad_id', { partial }) && !String(record.entidad_id || '').trim()) {
+      throw new Error('entidad_id es obligatorio');
+    }
+    if (requiredWhenPresent(record, 'capacidad', { partial }) && !String(record.capacidad || '').trim()) {
+      throw new Error('capacidad es obligatoria');
+    }
   }
+
   if (entity === 'necesidades') {
-    if (!['persona','proyecto'].includes(record.entidad_tipo)) throw new Error('entidad_tipo debe ser persona o proyecto');
-    if (!record.entidad_id || !record.necesidad) throw new Error('entidad_id y necesidad son obligatorios');
+    if (requiredWhenPresent(record, 'entidad_tipo', { partial }) && !['persona','proyecto'].includes(record.entidad_tipo)) {
+      throw new Error('entidad_tipo debe ser persona o proyecto');
+    }
+    if (requiredWhenPresent(record, 'entidad_id', { partial }) && !String(record.entidad_id || '').trim()) {
+      throw new Error('entidad_id es obligatorio');
+    }
+    if (requiredWhenPresent(record, 'necesidad', { partial }) && !String(record.necesidad || '').trim()) {
+      throw new Error('necesidad es obligatoria');
+    }
   }
+
   return out;
 }
