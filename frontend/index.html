@@ -42,7 +42,7 @@
           <div id="searchResults" class="search-results" hidden></div>
         </div>
         <div class="top-actions">
-          <button class="icon-btn" id="notificationsBtn" aria-label="Notificaciones">♢</button>
+          <button class="icon-btn notification-btn" id="notificationsBtn" aria-label="Notificaciones">♢<span id="notificationBadge" class="notification-badge" hidden>0</span></button>
           <div class="visitor">
             <div class="avatar">M</div>
             <div><strong>Visitante MESA</strong><span>Acceso público</span></div>
@@ -70,9 +70,9 @@
         <section class="matching-panel panel">
           <div class="matching-head">
             <div class="matching-copy">
-              <p id="panelKicker">PANEL DE MATCHING</p>
-              <h1 id="panelTitle">Conexiones con potencial real</h1>
-              <span id="panelSubtitle">La MESA cruza capacidades y necesidades para detectar colaboraciones útiles.</span>
+              <p id="panelKicker"></p>
+              <h1 id="panelTitle">Panel de Matching</h1>
+              <span id="panelSubtitle">La IA de MESA analiza perfiles, proyectos y necesidades para ayudarte a generar las mejores conexiones.</span>
             </div>
 
             <div class="matching-controls">
@@ -111,7 +111,6 @@
           </div>
 
           <div id="recommendationList" class="recommendation-list"></div>
-          <button class="primary-btn open-intake full-width">Subir mi proyecto</button>
         </aside>
       </main>
     </div>
