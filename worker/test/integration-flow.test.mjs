@@ -107,6 +107,10 @@ test('flujo público completo: personas, proyecto, señales, búsqueda y matchin
   assert.ok(dash.counts.capacidades>=3,'debe derivar capacidades');
   assert.ok(dash.counts.necesidades>=1,'debe derivar necesidades');
   assert.ok(dash.counts.matches>=1,'debe crear al menos un match');
+  const firstMatch=dash.matches[0];
+  for(const key of ['escala_general','conocimiento','experiencia_sectorial','afinidad_problema','recursos','urgencia','capacidad_ejecucion','complementariedad']){
+    assert.ok(Number(firstMatch[key])>=1&&Number(firstMatch[key])<=7,key+' debe estar en escala 1-7');
+  }
   assert.equal(dash.proyectos[0].nombre,'Proyecto Alfa');
 
   const searchRes=await call(worker,environment,'/api/search?q=Proyecto%20Alfa');
