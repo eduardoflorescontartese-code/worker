@@ -1,5 +1,6 @@
 import { ENTITY_CONFIG, PUBLIC_ENTITIES, normalizeEntityName, validateRecord } from './schema.js';
-import { ensureStore, listRows, appendRecord, updateRecord } from './store.js';
+import { ensureStore, listRows, appendRecord, updateRecord, googleConfigured } from './store.js';
+import { uploadFileToDrive } from './google.js';
 import { buildMatches } from './matching.js';
 
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
@@ -267,28 +268,41 @@ async function globalSearch(env, q){
 
 async function uploadDocument(env, req){
   if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
-  if(!env.DOCS) return json({error:'Cloudflare R2 no está configurado para documentos'},503);
   const form=await req.formData();
   const file=form.get('file');
   if(!(file instanceof File)) return json({error:'Falta archivo'},400);
-  const key=`mesa/${Date.now()}-${crypto.randomUUID()}-${String(file.name||'archivo').replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
-  await env.DOCS.put(key,await file.arrayBuffer(),{httpMetadata:{contentType:file.type||'application/octet-stream'}});
   const cfg=ENTITY_CONFIG.documentos, rows=await listRows(env,cfg), ts=now();
+
+  let storageUrl='', driveFileId='', storedName=file.name||'archivo', storedType=file.type||'application/octet-stream', created=ts;
+  if(googleConfigured(env) && env.GOOGLE_DRIVE_FOLDER_ID){
+    const drive=await uploadFileToDrive(env,file,{name:storedName});
+    storageUrl=drive.webViewLink||`https://drive.google.com/open?id=${drive.id}`;
+    driveFileId=drive.id||'';
+    storedName=drive.name||storedName;
+    storedType=drive.mimeType||storedType;
+    created=drive.createdTime||created;
+  }else{
+    if(!env.DOCS) return json({error:'No hay almacenamiento de documentos configurado'},503);
+    const key=`mesa/${Date.now()}-${crypto.randomUUID()}-${storedName.replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
+    await env.DOCS.put(key,await file.arrayBuffer(),{httpMetadata:{contentType:storedType}});
+    storageUrl=`r2://DOCS/${key}`;
+  }
+
   const rec={
     id:nextId(rows,cfg.prefix),
     persona_id:form.get('persona_id')||'',
     proyecto_id:form.get('proyecto_id')||'',
-    nombre:file.name||'archivo',
-    tipo:file.type||'application/octet-stream',
-    drive_file_id:'',
-    url:`r2://DOCS/${key}`,
-    fecha:ts,
+    nombre:storedName,
+    tipo:storedType,
+    drive_file_id:driveFileId,
+    url:storageUrl,
+    fecha:created,
     origen:form.get('origen')||'carga manual',
     resumen:'',
     estado_analisis:'Pendiente',
     fecha_actualizacion:ts,
     origen_informacion:form.get('origen')||'carga manual',
-    origen_referencia:key,
+    origen_referencia:driveFileId||storageUrl,
     eliminado:false
   };
   await appendRecord(env,cfg,rec);
@@ -302,7 +316,7 @@ export default { async fetch(req, env){
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     await ensureStore(env,ENTITY_CONFIG);
-    if(path==='/api/health') return json({ok:true,service:'MESA API',storage:env.DB?'d1':'none',storageConfigured:Boolean(env.DB)},200,h);
+    if(path==='/api/health') { const storage=googleConfigured(env)?'google':(env.DB?'d1':'none'); return json({ok:true,service:'MESA API',storage,storageConfigured:storage!=='none',googleConfigured:googleConfigured(env)},200,h); }
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
