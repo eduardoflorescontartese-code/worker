@@ -16,6 +16,7 @@ export const api={
   remove:(e,id)=>call(`/api/${e}/${encodeURIComponent(id)}`,{method:'DELETE'}),
   search:q=>call(`/api/search?q=${encodeURIComponent(q)}`),
   recompute:()=>call('/api/matches/recompute',{method:'POST'}),
+  decideMatch:(id,decision)=>call(`/api/matches/${encodeURIComponent(id)}/decision`,{method:'POST',body:JSON.stringify({decision})}),
   bootstrap:()=>call('/api/admin/bootstrap',{method:'POST'}),
   uploadDocument:form=>call('/api/documentos/upload',{method:'POST',body:form})
 };
