@@ -4,6 +4,7 @@ compatibility_date = "2026-10-04"
 
 [vars]
 ALLOWED_ORIGIN = "*"
+GOOGLE_SHEETS_SPREADSHEET_ID = "1nXIBKE0lZNmcmZvwyYiQqrrBY8vgSoBa5u0EHk636VA"
 
 [assets]
 directory = "./frontend"
@@ -11,8 +12,5 @@ binding = "ASSETS"
 
 # Configure secrets with Cloudflare (never commit real values):
 # MESA_ADMIN_TOKEN
-
-[[d1_databases]]
-binding = "DB"
-database_name = "singulara-business-db"
-database_id = "d34776f2-0332-478a-904a-743e5a5e7be1"
+# GOOGLE_SERVICE_ACCOUNT_EMAIL
+# GOOGLE_PRIVATE_KEY
