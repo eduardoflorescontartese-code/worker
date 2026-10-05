@@ -146,16 +146,34 @@ export function createMatchingView({$, esc, getDashboard, bindIntakeButtons}){
     });
   }
 
+
+  function emptyMatchCard(){
+    const factors=[
+      'Conocimiento','Experiencia sectorial','Afinidad del problema',
+      'Recursos','Urgencia','Capacidad de ejecución','Complementariedad'
+    ];
+    return '<article class="match-card-reference empty-match-card">'+
+      '<div class="match-pair">'+
+        '<div class="match-entity"><div class="entity-icon empty-entity">—</div><div><span>Persona</span><strong>Sin información todavía</strong><small>&nbsp;</small><div class="entity-chips"><span class="entity-chip empty-chip">&nbsp;</span><span class="entity-chip empty-chip">&nbsp;</span></div></div></div>'+
+        '<div class="pair-arrow">↔</div>'+
+        '<div class="match-entity project"><div class="entity-icon project-icon empty-entity">▣</div><div><span>Proyecto</span><strong>Sin información todavía</strong><small>&nbsp;</small><div class="entity-chips"><span class="entity-chip empty-chip">&nbsp;</span><span class="entity-chip empty-chip">&nbsp;</span></div></div></div>'+
+      '</div>'+
+      '<div class="match-body-reference">'+
+        '<div class="score-zone"><div class="score-gauge empty-gauge"><div><strong>—</strong><span>Encaje general</span></div></div><span class="score-label empty-label">Sin datos</span></div>'+
+        '<div class="factor-zone"><div class="factor-list">'+
+          factors.map(x=>'<div class="factor-line"><span>'+x+'</span><div class="factor-bar"><i style="width:0%"></i></div><b>—</b></div>').join('')+
+        '</div>'+legend()+'</div>'+
+      '</div>'+
+      '<div class="match-explanation empty-explanation"><span class="bulb">●</span><span class="explanation-copy">Sin información todavía.</span><span></span></div>'+
+    '</article>';
+  }
+
   function render(){
     const list=$('#matchesList');
     const data=rows();
 
     if(!data.length){
-      list.innerHTML='<div class="empty-state"><div><div class="empty-icon">⌘</div>'+
-        '<h3>Sin conexiones sugeridas todavía</h3>'+
-        '<p>Cuando existan personas, proyectos, capacidades y necesidades compatibles, MESA mostrará aquí los matches.</p>'+
-        '<button class="primary-btn open-intake">Subir mi proyecto</button></div></div>';
-      bindIntakeButtons();
+      list.innerHTML=emptyMatchCard()+emptyMatchCard();
       return;
     }
 
