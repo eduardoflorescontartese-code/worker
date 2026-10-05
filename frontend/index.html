@@ -1,4 +1,56 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MESA — Mapa de Capacidades y Proyectos</title><link rel="stylesheet" href="./styles.css"></head><body>
-<div class="shell"><aside><div class="brand"><strong>MESA</strong><span>Mapa de Capacidades y Proyectos</span></div><nav id="nav"></nav><div class="aside-foot"><button id="authBtn" class="secondary">Acceso</button><small>Google Sheets/Drive = fuente de verdad</small></div></aside><main><header><div><h1 id="title">Dashboard</h1><p id="subtitle">¿Quién puede ayudar a quién?</p></div><div class="search"><input id="globalSearch" placeholder="Buscar personas, proyectos, capacidades…"><button id="searchBtn">Buscar</button></div></header><section id="app"></section></main></div>
-<dialog id="modal"><form method="dialog" id="modalForm"><div class="dialog-head"><h2 id="modalTitle"></h2><button value="cancel" class="icon">×</button></div><div id="modalBody"></div><div class="dialog-actions"><button value="cancel" class="secondary">Cancelar</button><button id="modalSave" value="default">Guardar</button></div></form></dialog>
-<script src="./config.js"></script><script type="module" src="./app.js"></script></body></html>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MESA — Personas y proyectos</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>MESA</strong>
+      <span>Personas y proyectos</span>
+    </div>
+    <input id="search" type="search" placeholder="Buscar persona o proyecto">
+  </header>
+
+  <main>
+    <section class="intro">
+      <div>
+        <p class="eyebrow">MESA INDEPENDIENTE DE PROYECTOS</p>
+        <h1>Personas</h1>
+        <p>Una ficha simple por persona: nombre, correo y proyecto.</p>
+      </div>
+      <div class="counter"><strong id="count">0</strong><span>personas</span></div>
+    </section>
+
+    <section class="layout">
+      <form id="personForm" class="card intake">
+        <h2>Agregar persona</h2>
+        <label>Nombre
+          <input id="name" name="name" autocomplete="name" required>
+        </label>
+        <label>Correo electrónico
+          <input id="email" name="email" type="email" autocomplete="email" required>
+        </label>
+        <label>Proyecto o idea
+          <textarea id="project" name="project" placeholder="¿Qué proyecto tiene o qué quiere desarrollar?"></textarea>
+        </label>
+        <button type="submit">Guardar</button>
+        <p class="hint">Sin teléfono, sin dirección, sin redes sociales.</p>
+        <p id="formStatus" class="status" aria-live="polite"></p>
+      </form>
+
+      <section class="people">
+        <div id="peopleList" class="people-list">
+          <div class="empty">Cargando personas…</div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="./config.js"></script>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
