@@ -1,6 +1,5 @@
 import { ENTITY_CONFIG, PUBLIC_ENTITIES, normalizeEntityName, validateRecord } from './schema.js';
-import { ensureStore, listRows, appendRecord, updateRecord, googleConfigured, googleCredentialsPresent } from './store.js';
-import { uploadFileToDrive } from './google.js';
+import { ensureStore, listRows, appendRecord, updateRecord } from './store.js';
 import { buildMatches } from './matching.js';
 
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
@@ -330,19 +329,10 @@ async function uploadDocument(env, req){
   const cfg=ENTITY_CONFIG.documentos, rows=await listRows(env,cfg), ts=now();
 
   let storageUrl='', driveFileId='', storedName=file.name||'archivo', storedType=file.type||'application/octet-stream', created=ts;
-  if(googleConfigured(env) && env.GOOGLE_DRIVE_FOLDER_ID){
-    const drive=await uploadFileToDrive(env,file,{name:storedName});
-    storageUrl=drive.webViewLink||`https://drive.google.com/open?id=${drive.id}`;
-    driveFileId=drive.id||'';
-    storedName=drive.name||storedName;
-    storedType=drive.mimeType||storedType;
-    created=drive.createdTime||created;
-  }else{
-    if(!env.DOCS) return json({error:'No hay almacenamiento de documentos configurado'},503);
-    const key=`mesa/${Date.now()}-${crypto.randomUUID()}-${storedName.replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
-    await env.DOCS.put(key,await file.arrayBuffer(),{httpMetadata:{contentType:storedType}});
-    storageUrl=`r2://DOCS/${key}`;
-  }
+  if(!env.DOCS) return json({error:'El almacenamiento de archivos todavía no está habilitado. MESA sí puede guardar datos y enlaces en D1.'},503);
+  const key=`mesa/${Date.now()}-${crypto.randomUUID()}-${storedName.replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
+  await env.DOCS.put(key,await file.arrayBuffer(),{httpMetadata:{contentType:storedType}});
+  storageUrl=`r2://DOCS/${key}`;
 
   const rec={
     id:nextId(rows,cfg.prefix),
@@ -379,23 +369,14 @@ export default { async fetch(req, env){
       }catch(e){
         storeReady=false;
         storeError=e?.message||String(e);
-        storage=googleConfigured(env)?'google':(env.DB?'d1':'none');
+        storage=env.DB?'d1':'none';
       }
       return json({
         ok:storeReady,
         service:'MESA API',
         storage,
         storageConfigured:storage!=='none',
-        googleConfigured:googleConfigured(env),
-        googleCredentialsPresent:googleCredentialsPresent(env),
-        googlePrimaryEnabled:env.GOOGLE_PRIMARY_ENABLED!=='false',
-        googleConfig:{
-          clientId:Boolean(env.GOOGLE_CLIENT_ID),
-          clientSecret:Boolean(env.GOOGLE_CLIENT_SECRET),
-          refreshToken:Boolean(env.GOOGLE_REFRESH_TOKEN),
-          spreadsheetId:Boolean(env.GOOGLE_SPREADSHEET_ID),
-          driveFolderId:Boolean(env.GOOGLE_DRIVE_FOLDER_ID)
-        },
+        documentStorage:env.DOCS?'r2':'not-configured',
         storeError
       },200,h);
     }

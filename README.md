@@ -1,45 +1,49 @@
-# MESA — Mapa de Capacidades y Proyectos
+# MESA — Personas. Proyectos. Impacto real.
 
-Aplicación privada para administrar la Mesa Independiente de Proyectos.
+Aplicación pública y gratuita para conectar personas, capacidades, necesidades y proyectos.
 
-## Arquitectura
+## Arquitectura actual
 
-**GitHub → Cloudflare Pages + Cloudflare Worker API → Google Sheets / Google Drive**
+**GitHub → Cloudflare Worker + Assets → Cloudflare D1**
 
-- **Google Sheets** es la fuente de verdad estructurada.
-- **Google Drive** conserva CV, PDF, presentaciones y adjuntos.
-- **Gmail** permanece como puerta de entrada; su análisis se realiza desde integraciones autorizadas, no desde el frontend.
-- **Cloudflare** aloja interfaz/API y no encierra la información operativa.
-- **LocalStorage no se usa como base de datos**. El frontend solo usa `sessionStorage` para el token administrativo de la sesión.
+- **Cloudflare D1** es la fuente de verdad operativa de MESA.
+- La información de MESA V2 vive aislada en la tabla `mesa_v2_records`, separada por entidad.
+- **Google ya no es una dependencia operativa**.
+- **LocalStorage no es base de datos**; solo se utiliza para conservar el token personal de edición generado en el navegador.
+- El frontend es público: no requiere login para participar ni para cargar un proyecto.
 
-## Modelo
+## Entidades
 
-- `Capacidades`: solo lo que una persona/proyecto posee.
-- `Necesidades`: solo lo que una persona/proyecto requiere/busca.
-- `entidad_tipo`: `persona` o `proyecto`.
-- IDs estables: `P-0001`, `PR-0001`, `C-0001`, `N-0001`, `M-0001`, `E-0001`, `PE-0001`, `D-0001`.
-- Bajas lógicas y auditoría.
-- Ninguna necesidad de Javier/RefNet se registra como capacidad personal.
+- Personas
+- Proyectos
+- Capacidades
+- Necesidades
+- Matches
+- Equipos
+- Pendientes
+- Documentos
+- Auditoría
 
-## API
+IDs estables: `P-0001`, `PR-0001`, `C-0001`, `N-0001`, `M-0001`, `E-0001`, `PE-0001`, `D-0001`.
+
+## API principal
 
 - `GET /api/health`
-- CRUD para personas, proyectos, capacidades, necesidades, matches, equipos, pendientes y documentos
+- `GET /api/public/stats`
+- `GET /api/public/dashboard`
+- `POST /api/self/persona`
 - `GET /api/search?q=...`
 - `POST /api/matches/recompute`
-- `POST /api/documentos/upload`
-- `POST /api/admin/bootstrap`
+- CRUD administrativo de entidades
 
-Las escrituras requieren `Authorization: Bearer <MESA_ADMIN_TOKEN>`.
+## Documentos
 
-## Seguridad
-
-Los secretos Google viven exclusivamente en Cloudflare Secrets/Environment Variables. Nunca se guardan en GitHub ni se exponen en frontend.
+La API está preparada para **Cloudflare R2** mediante el binding `DOCS`. Si R2 todavía no está configurado, MESA continúa funcionando normalmente para personas, proyectos, matching y búsqueda; solo la carga binaria de archivos queda deshabilitada temporalmente.
 
 ## Pruebas
 
-La base incluye pruebas del motor de matching con Node `node:test`.
+El repositorio incluye pruebas con Node `node:test` y despliegue automático a Cloudflare desde `main`.
 
 ## Costo
 
-Diseñado para GitHub + Cloudflare free + Google, sin Replit y sin SaaS pago obligatorio.
+Diseñado para operar con infraestructura gratuita o free-tier, sin Replit ni SaaS pago obligatorio.
