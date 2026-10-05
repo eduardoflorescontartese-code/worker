@@ -3,7 +3,7 @@ const base = (cfg.apiBaseUrl || '').replace(/\/$/,'');
 function token(){ return sessionStorage.getItem('mesa_admin_token') || ''; }
 async function call(path, init={}){
   const headers=new Headers(init.headers||{}); const t=token(); if(t) headers.set('authorization',`Bearer ${t}`); if(init.body && !(init.body instanceof FormData)) headers.set('content-type','application/json');
-  const res=await fetch(base+path,{...init,headers}); const text=await res.text(); let data; try{data=JSON.parse(text)}catch{data={raw:text}}; if(!res.ok) throw new Error(data.error||`HTTP ${res.status}`); return data;
+  const res=await fetch(base+path,{cache:'no-store',...init,headers}); const text=await res.text(); let data; try{data=JSON.parse(text)}catch{data={raw:text}}; if(!res.ok) throw new Error(data.error||`HTTP ${res.status}`); return data;
 }
 export const api={
   setToken(v){ sessionStorage.setItem('mesa_admin_token',v); },
