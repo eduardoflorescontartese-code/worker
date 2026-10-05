@@ -1,6 +1,5 @@
 import { ENTITY_CONFIG, PUBLIC_ENTITIES, normalizeEntityName, validateRecord } from './schema.js';
-import { ensureStore, listRows, appendRecord, updateRecord, googleConfigured, googleCredentialsPresent } from './store.js';
-import { uploadFileToDrive } from './google.js';
+import { ensureStore, listRows, appendRecord, updateRecord } from './store.js';
 import { buildMatches } from './matching.js';
 
 const json = (data,status=200,headers={}) => new Response(JSON.stringify(data,null,2),{status,headers:{'content-type':'application/json; charset=utf-8',...headers}});
@@ -185,7 +184,7 @@ async function publicPendingIds(env){
 
 async function bootstrap(env, req){
   if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
-  await ensureStore(env,ENTITY_CONFIG);
+  await ensureStore(env);
   return json({ok:true,sheets:Object.values(ENTITY_CONFIG).map(x=>x.sheet)});
 }
 
@@ -324,25 +323,26 @@ async function globalSearch(env, q){
 
 async function uploadDocument(env, req){
   if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
+  if(!env.DOCS) return json({error:'El almacenamiento de archivos todavía no está configurado. La base D1 sí está operativa.'},503);
+
   const form=await req.formData();
   const file=form.get('file');
   if(!(file instanceof File)) return json({error:'Falta archivo'},400);
-  const cfg=ENTITY_CONFIG.documentos, rows=await listRows(env,cfg), ts=now();
 
-  let storageUrl='', driveFileId='', storedName=file.name||'archivo', storedType=file.type||'application/octet-stream', created=ts;
-  if(googleConfigured(env) && env.GOOGLE_DRIVE_FOLDER_ID){
-    const drive=await uploadFileToDrive(env,file,{name:storedName});
-    storageUrl=drive.webViewLink||`https://drive.google.com/open?id=${drive.id}`;
-    driveFileId=drive.id||'';
-    storedName=drive.name||storedName;
-    storedType=drive.mimeType||storedType;
-    created=drive.createdTime||created;
-  }else{
-    if(!env.DOCS) return json({error:'No hay almacenamiento de documentos configurado'},503);
-    const key=`mesa/${Date.now()}-${crypto.randomUUID()}-${storedName.replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
-    await env.DOCS.put(key,await file.arrayBuffer(),{httpMetadata:{contentType:storedType}});
-    storageUrl=`r2://DOCS/${key}`;
-  }
+  const cfg=ENTITY_CONFIG.documentos;
+  const rows=await listRows(env,cfg);
+  const ts=now();
+  const storedName=file.name||'archivo';
+  const storedType=file.type||'application/octet-stream';
+  const key=`mesa/${Date.now()}-${crypto.randomUUID()}-${storedName.replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
+
+  await env.DOCS.put(key,await file.arrayBuffer(),{
+    httpMetadata:{contentType:storedType},
+    customMetadata:{
+      persona_id:String(form.get('persona_id')||''),
+      proyecto_id:String(form.get('proyecto_id')||'')
+    }
+  });
 
   const rec={
     id:nextId(rows,cfg.prefix),
@@ -350,15 +350,15 @@ async function uploadDocument(env, req){
     proyecto_id:form.get('proyecto_id')||'',
     nombre:storedName,
     tipo:storedType,
-    drive_file_id:driveFileId,
-    url:storageUrl,
-    fecha:created,
+    storage_key:key,
+    url:`r2://DOCS/${key}`,
+    fecha:ts,
     origen:form.get('origen')||'carga manual',
     resumen:'',
     estado_analisis:'Pendiente',
     fecha_actualizacion:ts,
     origen_informacion:form.get('origen')||'carga manual',
-    origen_referencia:driveFileId||storageUrl,
+    origen_referencia:key,
     eliminado:false
   };
   await appendRecord(env,cfg,rec);
@@ -372,34 +372,18 @@ export default { async fetch(req, env){
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     if(path==='/api/health') {
-      let storeReady=true, storeError='', storage='none';
-      try{
-        const store=await ensureStore(env,ENTITY_CONFIG);
-        storage=store?.backend||'none';
-      }catch(e){
-        storeReady=false;
-        storeError=e?.message||String(e);
-        storage=googleConfigured(env)?'google':(env.DB?'d1':'none');
-      }
+      let storeReady=true, storeError='';
+      try{ await ensureStore(env); }catch(e){ storeReady=false; storeError=e?.message||String(e); }
       return json({
         ok:storeReady,
         service:'MESA API',
-        storage,
-        storageConfigured:storage!=='none',
-        googleConfigured:googleConfigured(env),
-        googleCredentialsPresent:googleCredentialsPresent(env),
-        googlePrimaryEnabled:env.GOOGLE_PRIMARY_ENABLED!=='false',
-        googleConfig:{
-          clientId:Boolean(env.GOOGLE_CLIENT_ID),
-          clientSecret:Boolean(env.GOOGLE_CLIENT_SECRET),
-          refreshToken:Boolean(env.GOOGLE_REFRESH_TOKEN),
-          spreadsheetId:Boolean(env.GOOGLE_SPREADSHEET_ID),
-          driveFolderId:Boolean(env.GOOGLE_DRIVE_FOLDER_ID)
-        },
+        storage:'d1',
+        storageConfigured:Boolean(env.DB),
+        documentsStorage:env.DOCS?'r2':'not-configured',
         storeError
       },200,h);
     }
-    await ensureStore(env,ENTITY_CONFIG);
+    await ensureStore(env);
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/public/dashboard'&&req.method==='GET') { const r=await publicDashboard(env); return withHeaders(r,h); }
     if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
