@@ -131,3 +131,12 @@ test('entrada limitada, comparación segura y JSON acotado',async()=>{
     err=>err.status===400
   );
 });
+
+
+test('rate limit administrativo cubre CRUD externo',async()=>{
+  const env={DB:new RateDB(),SECURITY_RATE_LIMIT_ENABLED:'true',ADMIN_WRITE_LIMIT:'1'};
+  const make=()=>new Request('https://worker.test/api/personas',{method:'POST',headers:{'cf-connecting-ip':'203.0.113.9','user-agent':'external-admin-test'}});
+  assert.equal(await guardRequest(env,make(),'/api/personas'),null);
+  const blocked=await guardRequest(env,make(),'/api/personas');
+  assert.equal(blocked.status,429);
+});

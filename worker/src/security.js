@@ -197,7 +197,8 @@ export async function guardRequest(env,req,path){
     (
       path.startsWith('/api/admin/')||
       path.startsWith('/api/matches/')||
-      path.startsWith('/api/documentos/')
+      path.startsWith('/api/documentos/')||
+      /^\/api\/(personas|proyectos|capacidades|necesidades|matches|equipos|pendientes|documentos|auditoria)(?:\/|$)/i.test(path)
     )
   ){
     const result=await rateLimit(

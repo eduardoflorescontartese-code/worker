@@ -42,6 +42,58 @@ const matchingService=createMatchingService({
   json
 });
 
+function externalSchema(){
+  const entities={};
+  for(const [name,cfg] of Object.entries(ENTITY_CONFIG)){
+    entities[name]={prefix:cfg.prefix,fields:[...cfg.headers],writable:name!=='auditoria'};
+  }
+  return {service:'MESA External Control API',version:'1.0.0',auth:'Bearer MESA_ADMIN_TOKEN',entities};
+}
+
+async function adminSnapshot(env,req){
+  if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
+  const url=new URL(req.url);
+  const includeDeleted=['1','true','si','sí'].includes(String(url.searchParams.get('include_deleted')||'').toLowerCase());
+  const data={};
+  for(const entity of Object.keys(ENTITY_CONFIG)){
+    const rows=await listEntity(env,entity,includeDeleted);
+    data[entity]=rows.map(cleanRow);
+  }
+  return json({ok:true,generated_at:now(),storage:'d1',data});
+}
+
+async function adminSchema(env,req){
+  if(!(await authorized(env,req))) return json({error:'No autorizado'},401);
+  return json(externalSchema());
+}
+
+function openApi(req){
+  const origin=new URL(req.url).origin;
+  const entities=Object.keys(ENTITY_CONFIG).filter(x=>x!=='auditoria');
+  const entityParam={name:'entity',in:'path',required:true,schema:{type:'string',enum:entities}};
+  const bearer=[{bearerAuth:[]}];
+  return json({
+    openapi:'3.1.0',
+    info:{title:'MESA External Control API',version:'1.0.0',description:'API administrativa para gestionar MESA desde herramientas externas sin modificar la interfaz pública.'},
+    servers:[{url:origin}],
+    components:{securitySchemes:{bearerAuth:{type:'http',scheme:'bearer',bearerFormat:'MESA_ADMIN_TOKEN'}}},
+    paths:{
+      '/api/admin/schema':{get:{operationId:'getMesaSchema',security:bearer,responses:{'200':{description:'Esquema de entidades'}}}},
+      '/api/admin/snapshot':{get:{operationId:'getMesaSnapshot',security:bearer,parameters:[{name:'include_deleted',in:'query',schema:{type:'boolean'}}],responses:{'200':{description:'Estado completo de MESA'}}}},
+      '/api/{entity}':{
+        get:{operationId:'listMesaEntity',security:bearer,parameters:[entityParam],responses:{'200':{description:'Registros'}}},
+        post:{operationId:'createMesaEntity',security:bearer,parameters:[entityParam],requestBody:{required:true,content:{'application/json':{schema:{type:'object',additionalProperties:true}}}},responses:{'201':{description:'Creado'}}}
+      },
+      '/api/{entity}/{id}':{
+        get:{operationId:'getMesaEntity',security:bearer,parameters:[entityParam,{name:'id',in:'path',required:true,schema:{type:'string'}}],responses:{'200':{description:'Registro'}}},
+        put:{operationId:'updateMesaEntity',security:bearer,parameters:[entityParam,{name:'id',in:'path',required:true,schema:{type:'string'}}],requestBody:{required:true,content:{'application/json':{schema:{type:'object',additionalProperties:true}}}},responses:{'200':{description:'Actualizado'}}},
+        delete:{operationId:'deleteMesaEntity',security:bearer,parameters:[entityParam,{name:'id',in:'path',required:true,schema:{type:'string'}}],responses:{'200':{description:'Baja lógica'}}}
+      },
+      '/api/matches/recompute':{post:{operationId:'recomputeMesaMatches',security:bearer,responses:{'200':{description:'Matching recalculado'}}}}
+    }
+  });
+}
+
 async function crud(env, req, entity, id){
   const cfg=ENTITY_CONFIG[entity];
   if(req.method==='GET'){
@@ -222,6 +274,11 @@ export default { async fetch(req, env, ctx){
 
     let response;
 
+    if(path==='/api/openapi.json'&&req.method==='GET'){
+      response=openApi(req);
+      return applySecurityHeaders(response,req,env,rid);
+    }
+
     if(path==='/api/health'){
       let storeReady=true;
       try{ await ensureStore(env); }catch{ storeReady=false; }
@@ -240,7 +297,11 @@ export default { async fetch(req, env, ctx){
     const cached=await edgeCacheMatch(req,path);
     if(cached)return applySecurityHeaders(cached,req,env,rid);
 
-    if(path==='/api/public/stats'&&req.method==='GET'){
+    if(path==='/api/admin/schema'&&req.method==='GET'){
+      response=await adminSchema(env,req);
+    }else if(path==='/api/admin/snapshot'&&req.method==='GET'){
+      response=await adminSnapshot(env,req);
+    }else if(path==='/api/public/stats'&&req.method==='GET'){
       response=await publicApi.stats(env);
     }else if(path==='/api/public/dashboard'&&req.method==='GET'){
       response=await publicApi.dashboard(env);
