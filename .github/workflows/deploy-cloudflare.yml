@@ -34,17 +34,29 @@ jobs:
         run: |
           set -euo pipefail
           BASE="https://worker.eduardo-flores-contartese.workers.dev"
+          HOME="$(curl -sS "$BASE/")"
           HEALTH="$(curl -sS "$BASE/api/health")"
           STATS="$(curl -sS "$BASE/api/public/stats")"
+          DASH="$(curl -sS "$BASE/api/public/dashboard")"
           echo "HEALTH=$HEALTH"
           echo "STATS=$STATS"
+          printf '%s' "$HOME" | grep -q "PANEL DE MATCHING"
+          printf '%s' "$HOME" | grep -q "Subir mi proyecto"
+          printf '%s' "$HOME" | grep -q "MESA abierta"
+          if printf '%s' "$HOME" | grep -Eqi "inici[aá] sesi[oó]n|login obligatorio|contraseña obligatoria"; then
+            echo "La interfaz pública contiene una barrera de acceso inesperada"
+            exit 1
+          fi
           node -e '
             const h=JSON.parse(process.argv[1]);
             const s=JSON.parse(process.argv[2]);
             if(!h.ok) throw new Error("health no OK: "+(h.storeError||"sin detalle"));
             if(s.error) throw new Error("stats error: "+s.error);
-            if(!["google","d1"].includes(h.storage)) throw new Error("storage inválido: "+h.storage);
+            if(h.storage!=="d1") throw new Error("storage no es D1: "+h.storage);
             if(Number(s.personas)<0) throw new Error("contador personas inválido: "+s.personas);
             if(Number(s.proyectos)<0) throw new Error("contador proyectos inválido: "+s.proyectos);
-            console.log("MESA NUEVA OK:", JSON.stringify({storage:h.storage,googleConfigured:h.googleConfigured,personas:s.personas,proyectos:s.proyectos}));
-          ' "$HEALTH" "$STATS"
+            const d=JSON.parse(process.argv[3]);
+            if((d.counts?.personas??-1)!==Number(s.personas)) throw new Error("dashboard/personas inconsistente");
+            if((d.counts?.proyectos??-1)!==Number(s.proyectos)) throw new Error("dashboard/proyectos inconsistente");
+            console.log("MESA V2 OK:", JSON.stringify({storage:h.storage,personas:s.personas,proyectos:s.proyectos,ui:"maqueta-publica"}));
+          ' "$HEALTH" "$STATS" "$DASH"
