@@ -11,7 +11,12 @@ export function createSuggestions({$, $$, esc, getDashboard}){
       .filter(m=>type==='persona'
         ? String(m.persona_id)===String(id)
         : String(m.proyecto_id)===String(id))
-      .map(m=>Math.max(0,Math.min(100,Number(m.puntuacion)||0)));
+      .map(m=>{
+        const direct=Number(m.escala_general);
+        if(direct>0)return direct;
+        const pct=Math.max(0,Math.min(100,Number(m.puntuacion)||0));
+        return Number((1+(pct/100)*6).toFixed(1));
+      });
     return scores.length?Math.max(...scores):null;
   }
 
@@ -39,7 +44,7 @@ export function createSuggestions({$, $$, esc, getDashboard}){
           '<div><strong>'+esc(p.nombre_completo||'Persona')+'</strong>'+
           '<p>'+esc([p.profesion,p.especialidad].filter(Boolean).join(' · ')||'Perfil en MESA')+'</p>'+
           '<div class="chips">'+[p.profesion,p.especialidad].filter(Boolean).slice(0,2).map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+'</div></div>'+
-          (score===null?'<span class="row-arrow">›</span>':'<span class="suggestion-score">'+score+'%</span>')+
+          (score===null?'<span class="row-arrow">›</span>':'<span class="suggestion-score">'+score.toFixed(1)+'</span>')+
         '</article>';
       }).join(''):'<div class="empty-mini">Sin personas todavía</div>';
       return;
