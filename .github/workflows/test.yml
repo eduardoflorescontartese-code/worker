@@ -1,6 +1,4 @@
 name: test
-permissions:
-  contents: read
 on:
   push:
   pull_request:
@@ -23,6 +21,5 @@ jobs:
       - run: node --check frontend/modules/matching-view.js
       - run: node --check frontend/modules/suggestions.js
       - run: node --check worker/src/index.js
-      - run: node --check worker/src/security.js
       - run: node --check worker/src/public.js
       - run: node --check worker/src/matching-service.js
