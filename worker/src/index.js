@@ -75,10 +75,29 @@ function parseObjectValue(v){
   const s=String(v??'').trim(); if(!s) return {};
   try{const j=JSON.parse(s); return j&&typeof j==='object'&&!Array.isArray(j)?j:{}}catch{return {}}
 }
+function parseArrayValue(v){
+  if(Array.isArray(v)) return structuredClone(v);
+  const s=String(v??'').trim(); if(!s) return [];
+  try{const j=JSON.parse(s); if(Array.isArray(j)) return j}catch{}
+  return s.split(/[;\n,]+/).map(x=>x.trim()).filter(Boolean);
+}
+export function matchDecisionMode(status,decision){
+  const state=String(status||'sugerido').toLowerCase();
+  const action=String(decision||'').toLowerCase();
+  if(!['confirm','dismiss'].includes(action)) return 'INVALID';
+  if(state==='confirmado') return action==='confirm'?'IDEMPOTENT':'CONFLICT';
+  if(state==='descartado') return action==='dismiss'?'IDEMPOTENT':'CONFLICT';
+  return 'APPLY';
+}
 async function decideMatch(env, req, idValue){
   const match=await findById(env,'matches',idValue); if(!match||deleted(match.eliminado)) return json({error:'Match no encontrado'},404);
-  const body=await req.json(), decision=String(body.decision||'').toLowerCase();
-  if(!['confirm','dismiss'].includes(decision)) return json({error:'Decisión inválida'},400);
+  const body=await req.json(), decision=String(body.decision||'').toLowerCase(), mode=matchDecisionMode(match.estado,decision);
+  if(mode==='INVALID') return json({error:'Decisión inválida'},400);
+  if(mode==='CONFLICT') return json({error:'El match ya tiene una decisión final distinta'},409);
+  if(mode==='IDEMPOTENT'){
+    const team=match.origen_referencia?await findById(env,'equipos',match.origen_referencia):null;
+    return json({ok:true,idempotent:true,match:cleanRow(match),team:team?cleanRow(team):null});
+  }
   if(decision==='dismiss'){
     const rec={...cleanRow(match),estado:'descartado',fecha_actualizacion:now(),origen_informacion:'decisión operativa'};
     await updateRow(env,ENTITY_CONFIG.matches,match.__row,rec);
@@ -100,11 +119,12 @@ async function decideMatch(env, req, idValue){
     await audit(env,'equipos',team.id,'crear_desde_match','match confirmado',match.id);
   }else{
     const current=await findById(env,'equipos',team.id);
-    const members=parseListValue(current.integrantes),roles=parseObjectValue(current.roles),covered=parseListValue(current.capacidades_cubiertas);
+    const members=parseListValue(current.integrantes),roles=parseObjectValue(current.roles),covered=parseArrayValue(current.capacidades_cubiertas);
     if(!members.includes(person.id)) members.push(person.id);
     roles[person.id]=role;
-    const coverage=JSON.stringify({persona_id:person.id,capacidad_id:match.capacidad_id||'',necesidad_id:match.necesidad_id||'',descripcion:role});
-    if(!covered.includes(coverage)) covered.push(coverage);
+    const coverage={persona_id:person.id,capacidad_id:match.capacidad_id||'',necesidad_id:match.necesidad_id||'',descripcion:role};
+    const exists=covered.some(x=>x&&typeof x==='object'&&String(x.persona_id||'')===String(coverage.persona_id)&&String(x.capacidad_id||'')===String(coverage.capacidad_id)&&String(x.necesidad_id||'')===String(coverage.necesidad_id));
+    if(!exists) covered.push(coverage);
     const rec={...cleanRow(current),integrantes:JSON.stringify(members),roles:JSON.stringify(roles),capacidades_cubiertas:JSON.stringify(covered),estado:'activo',fecha_actualizacion:now(),origen_informacion:'match confirmado'};
     await updateRow(env,ENTITY_CONFIG.equipos,current.__row,rec); team=rec;
     await audit(env,'equipos',team.id,'agregar_integrante_desde_match','match confirmado',match.id+' · '+person.id);
