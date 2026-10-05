@@ -58,6 +58,12 @@ async function recomputeMatches(env, req){
   await audit(env,'matches','*','recalcular','deducción razonable',`${created} matches nuevos`); return json({ok:true,created});
 }
 
+async function graphSnapshot(env){
+  const entities=['personas','proyectos','capacidades','necesidades','matches','equipos','pendientes','documentos'];
+  const pairs=await Promise.all(entities.map(async entity=>[entity,(await listEntity(env,entity)).map(cleanRow)]));
+  return json({updatedAt:now(),data:Object.fromEntries(pairs)});
+}
+
 async function globalSearch(env, q){
   const needle=String(q||'').trim().toLowerCase(); if(!needle) return json({query:q,results:[]});
   const results=[];
@@ -83,6 +89,7 @@ export default { async fetch(req, env){
 
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
     if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await recomputeMatches(env,req); return withHeaders(r,h); }
+    if(path==='/api/graph'&&req.method==='GET') { const r=await graphSnapshot(env); return withHeaders(r,h); }
     if(path==='/api/search'&&req.method==='GET') { const r=await globalSearch(env,url.searchParams.get('q')); return withHeaders(r,h); }
     if(path==='/api/documentos/upload'&&req.method==='POST') { const r=await uploadDocument(env,req); return withHeaders(r,h); }
     const m=path.match(/^\/api\/([a-záéíóúñ]+)(?:\/([^/]+))?$/i);
