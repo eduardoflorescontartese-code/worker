@@ -78,13 +78,51 @@ async function liveMap(){
   await refreshLiveMap(false);
   mapTimer=setInterval(()=>{if(current==='mapa')refreshLiveMap(true)},15000);
 }
+function publicPresentationSnapshot(){
+  return {updatedAt:new Date().toISOString(),data:{
+    personas:[
+      {id:'P-DEMO-1',nombre_completo:'Perfil Backend',profesion:'Ingeniería de software',especialidad:'Node.js / APIs'},
+      {id:'P-DEMO-2',nombre_completo:'Perfil Datos',profesion:'Analítica',especialidad:'Datos / BI'},
+      {id:'P-DEMO-3',nombre_completo:'Perfil Producto',profesion:'Product',especialidad:'UX / Operaciones'},
+      {id:'P-DEMO-4',nombre_completo:'Perfil Automatización',profesion:'Sistemas',especialidad:'IA / Workflows'}
+    ],
+    proyectos:[
+      {id:'PR-DEMO-1',nombre:'Plataforma Operativa',sector:'TECNOLOGÍA',etapa:'En ejecución',problema:'Coordinar capacidades, necesidades y trabajo real entre perfiles.'},
+      {id:'PR-DEMO-2',nombre:'Motor de Automatización',sector:'IA / PROCESOS',etapa:'Diseño',problema:'Reducir tareas manuales y conectar flujos entre equipos.'},
+      {id:'PR-DEMO-3',nombre:'Analítica de Decisiones',sector:'DATOS',etapa:'Validación',problema:'Convertir información dispersa en decisiones trazables.'}
+    ],
+    capacidades:[
+      {id:'C-D1',entidad_tipo:'persona',entidad_id:'P-DEMO-1',capacidad:'APIs, Node.js, PostgreSQL',estado:'Disponible'},
+      {id:'C-D2',entidad_tipo:'persona',entidad_id:'P-DEMO-2',capacidad:'Modelado de datos y BI',estado:'Disponible'},
+      {id:'C-D3',entidad_tipo:'persona',entidad_id:'P-DEMO-3',capacidad:'Diseño de producto y operaciones',estado:'Disponible'},
+      {id:'C-D4',entidad_tipo:'persona',entidad_id:'P-DEMO-4',capacidad:'Automatización e integraciones IA',estado:'Disponible'}
+    ],
+    necesidades:[
+      {id:'N-D1',entidad_tipo:'proyecto',entidad_id:'PR-DEMO-1',necesidad:'Backend transaccional',estado:'Abierta'},
+      {id:'N-D2',entidad_tipo:'proyecto',entidad_id:'PR-DEMO-2',necesidad:'Automatización de procesos',estado:'Abierta'},
+      {id:'N-D3',entidad_tipo:'proyecto',entidad_id:'PR-DEMO-3',necesidad:'Analítica operativa',estado:'Abierta'}
+    ],
+    matches:[
+      {id:'M-D1',persona_id:'P-DEMO-4',proyecto_id:'PR-DEMO-2',puntuacion:91,estado:'sugerido',explicacion:'Automatización + integraciones'},
+      {id:'M-D2',persona_id:'P-DEMO-2',proyecto_id:'PR-DEMO-3',puntuacion:87,estado:'sugerido',explicacion:'Datos + analítica'}
+    ],
+    equipos:[
+      {id:'E-D1',proyecto_id:'PR-DEMO-1',integrantes:JSON.stringify(['P-DEMO-1','P-DEMO-3']),roles:JSON.stringify({'P-DEMO-1':'Backend y arquitectura','P-DEMO-3':'Producto y operación'}),estado:'activo'}
+    ],
+    pendientes:[
+      {id:'PE-D1',entidad_tipo:'proyecto',entidad_id:'PR-DEMO-1',pendiente:'Cerrar integración operativa',estado:'abierto',responsable_id:'P-DEMO-1'},
+      {id:'PE-D2',entidad_tipo:'persona',entidad_id:'P-DEMO-4',pendiente:'Definir siguiente automatización',estado:'abierto',responsable_id:'P-DEMO-4'}
+    ],
+    documentos:[],auditoria:[]
+  }};
+}
 async function refreshLiveMap(quiet){
   try{
     if(!quiet)liveBadge('','Sincronizando');
-    const snap=await api.graph();mapSnapshot=snap.data||{};
+    const snap=api.hasToken()?await api.graph():publicPresentationSnapshot();mapSnapshot=snap.data||{};
     if(!mapSelected){const model=mapModel(mapSnapshot),ranked=model.projects.slice().sort((a,b)=>model.edges.filter(e=>e.projectId===b.id).length-model.edges.filter(e=>e.projectId===a.id).length);if(ranked[0])mapSelected={type:'project',id:ranked[0].id}}
     renderLiveMap();
-    liveBadge('ok','Actualizado '+new Date(snap.updatedAt||Date.now()).toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+    liveBadge('ok',(api.hasToken()?'Actualizado ':'Vista pública de presentación · ')+new Date(snap.updatedAt||Date.now()).toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
   }catch(e){liveBadge('error','Sin conexión');if(!quiet)fail(e)}
 }
 function openNeedsForProject(data,projectId){return(data.necesidades||[]).filter(n=>entityKind(n.entidad_tipo)==='proyecto'&&String(n.entidad_id)===String(projectId)&&textNorm(n.estado)!=='cubierta'&&textNorm(n.estado)!=='eliminado')}
