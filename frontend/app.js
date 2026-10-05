@@ -64,8 +64,10 @@ function mapModel(data){
 }
 function liveBadge(kind,text){const el=document.querySelector('#liveState');if(!el)return;el.className='live-state '+kind;el.innerHTML='<span></span>'+esc(text)}
 async function liveMap(){
-  app.innerHTML='<div class="map-wrap"><div class="map-main"><div class="map-toolbar"><div class="map-tabs"><button data-map-filter="todos">Todos</button><button data-map-filter="confirmados">Equipos confirmados</button><button data-map-filter="matches">Matches ≥70%</button><button data-map-filter="necesidades">Con necesidades abiertas</button></div><div class="map-counts" id="map-counts"></div></div><div class="map-scroll"><div class="graph-stage" id="graph-stage"><div class="map-empty">Sincronizando red operativa…</div></div></div></div><aside class="map-inspector" id="map-inspector"><div class="empty">Seleccioná una persona o proyecto.</div></aside></div>';
+  app.innerHTML='<div class="map-wrap"><div class="map-main"><div class="map-toolbar"><div class="map-tabs"><button data-map-filter="todos">Todos</button><button data-map-filter="confirmados">Equipos confirmados</button><button data-map-filter="matches">Matches ≥70%</button><button data-map-filter="necesidades">Con necesidades abiertas</button></div><div class="map-toolbar-right"><div class="map-counts" id="map-counts"></div><button class="secondary map-action" id="map-recompute">Recalcular</button><button class="secondary map-action" id="map-refresh">Actualizar</button></div></div><div class="map-scroll"><div class="graph-stage" id="graph-stage"><div class="map-empty">Sincronizando red operativa…</div></div></div></div><aside class="map-inspector" id="map-inspector"><div class="empty">Seleccioná una persona o proyecto.</div></aside></div>';
   document.querySelectorAll('[data-map-filter]').forEach(b=>b.onclick=()=>{mapFilter=b.dataset.mapFilter;renderLiveMap()});
+  document.querySelector('#map-refresh').onclick=()=>refreshLiveMap(false);
+  document.querySelector('#map-recompute').onclick=async()=>{const btn=document.querySelector('#map-recompute');btn.disabled=true;try{const r=await api.recompute();await refreshLiveMap(false);alert((r.created||0)+' matches nuevos calculados.')}catch(e){alert(e.message)}finally{btn.disabled=false}};
   await refreshLiveMap(false);
   mapTimer=setInterval(()=>{if(current==='mapa')refreshLiveMap(true)},15000);
 }
@@ -116,6 +118,25 @@ function renderLiveMap(){
   document.querySelectorAll('[data-map-filter]').forEach(b=>b.classList.toggle('active',b.dataset.mapFilter===mapFilter));
   document.querySelectorAll('[data-map-node]').forEach(b=>b.onclick=()=>{mapSelected={type:b.dataset.mapNode,id:b.dataset.id};renderLiveMap()});
   renderInspector(model,data,edges);
+  document.querySelectorAll('[data-confirm-match]').forEach(b=>b.onclick=()=>decideMatchFromMap(b.dataset.confirmMatch,'confirm',b));
+  document.querySelectorAll('[data-dismiss-match]').forEach(b=>b.onclick=()=>decideMatchFromMap(b.dataset.dismissMatch,'dismiss',b));
+}
+async function decideMatchFromMap(id,decision,button){
+  const label=decision==='confirm'?'Confirmar este match y sumarlo al equipo':'Descartar este match';
+  if(!confirm(label+'?'))return;
+  const buttons=document.querySelectorAll('[data-confirm-match],[data-dismiss-match]');buttons.forEach(x=>x.disabled=true);
+  try{await api.decideMatch(id,decision);await refreshLiveMap(false)}
+  catch(e){alert(e.message)}
+  finally{buttons.forEach(x=>x.disabled=false);if(button)button.blur()}
+}
+function matchActions(e){
+  if(e.type!=='match'||!e.matchId)return'';
+  return '<div class="match-actions"><button data-confirm-match="'+esc(e.matchId)+'">Confirmar equipo</button><button class="secondary" data-dismiss-match="'+esc(e.matchId)+'">Descartar</button></div>';
+}
+function recentActivity(data,limit=6){
+  const rows=(data.auditoria||[]).slice().sort((a,b)=>String(b.fecha||'').localeCompare(String(a.fecha||''))).slice(0,limit);
+  if(!rows.length)return'<div class="muted">Todavía no hay actividad auditada.</div>';
+  return rows.map(x=>'<div class="activity-item"><span>'+esc(x.accion||'cambio')+'</span><strong>'+esc((x.entidad||'')+' '+(x.registro_id||''))+'</strong><small>'+esc(x.detalle||x.origen||'')+'</small><time>'+esc(x.fecha?new Date(x.fecha).toLocaleString('es-UY'):'')+'</time></div>').join('');
 }
 function renderInspector(model,data,edges){
   const box=document.querySelector('#map-inspector');if(!box)return;
@@ -125,16 +146,16 @@ function renderInspector(model,data,edges){
     const rel=edges.filter(e=>e.personId===p.id),caps=capsFor(data,p.id),pending=pendingFor(data,'persona',p.id);
     box.innerHTML='<div class="inspector-head"><span class="inspector-kicker">PERSONA · '+esc(p.id)+'</span><h2>'+esc(p.nombre_completo||p.id)+'</h2><p>'+esc([p.profesion,p.especialidad,p.seniority].filter(Boolean).join(' · ')||'Perfil en construcción')+'</p></div>'+
       '<section class="inspector-section"><h4>Qué puede aportar</h4><div class="inspector-list">'+(caps.length?caps.slice(0,8).map(x=>'<div class="cap-item"><strong>'+esc(x.capacidad)+'</strong><br>'+esc([x.categoria,x.nivel].filter(Boolean).join(' · '))+'</div>').join(''):'<div class="muted">Sin capacidades registradas.</div>')+'</div></section>'+
-      '<section class="inspector-section"><h4>Con quién / dónde encaja</h4><div class="inspector-list">'+(rel.length?rel.map(e=>{const pr=model.projectMap.get(e.projectId);return '<div class="inspector-item"><span class="mini-avatar">'+esc(initials(pr?.nombre||'P'))+'</span><div><strong>'+esc(pr?.nombre||e.projectId)+'</strong><small>'+esc(e.type==='team'?'Equipo confirmado · '+e.label:'Match '+e.score+'% · '+e.label)+'</small></div></div>'}).join(''):'<div class="muted">Sin vínculos visibles con este filtro.</div>')+'</div></section>'+
-      '<section class="inspector-section"><h4>Pendientes</h4>'+(pending.length?pending.slice(0,6).map(x=>'<div class="task-item">'+esc(x.pendiente)+'</div>').join(''):'<div class="muted">Sin pendientes abiertos.</div>')+'</section><div class="legend"><span><i></i>Equipo</span><span><i class="dash"></i>Match sugerido</span></div>';
+      '<section class="inspector-section"><h4>Con quién / dónde encaja</h4><div class="inspector-list">'+(rel.length?rel.map(e=>{const pr=model.projectMap.get(e.projectId);return '<div class="inspector-item"><span class="mini-avatar">'+esc(initials(pr?.nombre||'P'))+'</span><div><strong>'+esc(pr?.nombre||e.projectId)+'</strong><small>'+esc(e.type==='team'?'Equipo confirmado · '+e.label:'Match '+e.score+'% · '+e.label)+'</small>'+matchActions(e)+'</div></div>'}).join(''):'<div class="muted">Sin vínculos visibles con este filtro.</div>')+'</div></section>'+
+      '<section class="inspector-section"><h4>Pendientes</h4>'+(pending.length?pending.slice(0,6).map(x=>'<div class="task-item">'+esc(x.pendiente)+'</div>').join(''):'<div class="muted">Sin pendientes abiertos.</div>')+'</section><section class="inspector-section"><h4>Actividad reciente</h4><div class="activity-list">'+recentActivity(data,5)+'</div></section><div class="legend"><span><i></i>Equipo</span><span><i class="dash"></i>Match sugerido</span></div>';
     return;
   }
   const p=model.projectMap.get(String(mapSelected.id));if(!p){box.innerHTML='<div class="empty">Proyecto no encontrado.</div>';return}
   const rel=edges.filter(e=>e.projectId===p.id),needs=openNeedsForProject(data,p.id),pending=pendingFor(data,'proyecto',p.id);
   box.innerHTML='<div class="inspector-head"><span class="inspector-kicker">PROYECTO · '+esc(p.id)+'</span><h2>'+esc(p.nombre||p.id)+'</h2><p>'+esc([p.sector,p.etapa,p.estado].filter(Boolean).join(' · '))+'</p></div>'+
-    '<section class="inspector-section"><h4>Quién va con quién y para qué</h4><div class="inspector-list">'+(rel.length?rel.map(e=>{const person=model.personMap.get(e.personId);return '<div class="inspector-item"><span class="mini-avatar">'+esc(initials(person?.nombre_completo||'P'))+'</span><div><strong>'+esc(person?.nombre_completo||e.personId)+'</strong><small>'+esc(e.type==='team'?'Confirmado · '+e.label:'Sugerido '+e.score+'% · '+e.label)+'</small></div></div>'}).join(''):'<div class="muted">Aún no hay personas vinculadas.</div>')+'</div></section>'+
+    '<section class="inspector-section"><h4>Quién va con quién y para qué</h4><div class="inspector-list">'+(rel.length?rel.map(e=>{const person=model.personMap.get(e.personId);return '<div class="inspector-item"><span class="mini-avatar">'+esc(initials(person?.nombre_completo||'P'))+'</span><div><strong>'+esc(person?.nombre_completo||e.personId)+'</strong><small>'+esc(e.type==='team'?'Confirmado · '+e.label:'Sugerido '+e.score+'% · '+e.label)+'</small>'+matchActions(e)+'</div></div>'}).join(''):'<div class="muted">Aún no hay personas vinculadas.</div>')+'</div></section>'+
     '<section class="inspector-section"><h4>Necesidades abiertas</h4>'+(needs.length?needs.slice(0,8).map(x=>'<div class="need-item"><strong>'+esc(x.necesidad)+'</strong><br>'+esc([x.categoria,x.prioridad].filter(Boolean).join(' · '))+'</div>').join(''):'<div class="muted">No hay necesidades abiertas registradas.</div>')+'</section>'+
-    '<section class="inspector-section"><h4>Pendientes</h4>'+(pending.length?pending.slice(0,6).map(x=>'<div class="task-item">'+esc(x.pendiente)+'</div>').join(''):'<div class="muted">Sin pendientes abiertos.</div>')+'</section><div class="legend"><span><i></i>Equipo confirmado</span><span><i class="dash"></i>Match sugerido</span></div>';
+    '<section class="inspector-section"><h4>Pendientes</h4>'+(pending.length?pending.slice(0,6).map(x=>'<div class="task-item">'+esc(x.pendiente)+'</div>').join(''):'<div class="muted">Sin pendientes abiertos.</div>')+'</section><section class="inspector-section"><h4>Actividad reciente</h4><div class="activity-list">'+recentActivity(data,5)+'</div></section><div class="legend"><span><i></i>Equipo confirmado</span><span><i class="dash"></i>Match sugerido</span></div>';
 }
 async function dashboard(){ const ents=['personas','proyectos','capacidades','necesidades','matches','equipos','pendientes','documentos']; const data=Object.fromEntries(await Promise.all(ents.map(async e=>[e,await api.list(e)]))); const high=(data.matches||[]).filter(x=>Number(x.puntuacion)>=70).length; const incomplete=(data.personas||[]).filter(x=>!x.profesion||!x.email).length; app.innerHTML=`<div class="content"><div class="cards">${card('Personas',data.personas.length)}${card('Proyectos',data.proyectos.length)}${card('Necesidades abiertas',data.necesidades.filter(x=>String(x.estado).toLowerCase()!=='cubierta').length)}${card('Matches',data.matches.length)}${card('Matches ≥70%',high)}${card('Equipos',data.equipos.length)}${card('Perfiles incompletos',incomplete)}${card('Documentos',data.documentos.length)}</div><div class="split" style="margin-top:16px"><div class="card"><h3>Proyectos por etapa</h3>${stageList(data.proyectos)}</div><div class="card"><h3>Prioridad operativa</h3><p class="muted">Las necesidades se cruzan exclusivamente contra capacidades poseídas. Nunca se registran necesidades como capacidades personales.</p><button id="recompute">Recalcular matches</button></div></div></div>`; document.querySelector('#recompute').onclick=async()=>{try{const r=await api.recompute();alert(`${r.created} matches nuevos`);go('matches')}catch(e){alert(e.message)}}; }
 function card(k,v){return `<div class="card"><div class="muted">${esc(k)}</div><div class="metric">${esc(v)}</div></div>`}
