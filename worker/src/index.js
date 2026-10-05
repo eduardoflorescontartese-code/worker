@@ -59,9 +59,60 @@ async function recomputeMatches(env, req){
 }
 
 async function graphSnapshot(env){
-  const entities=['personas','proyectos','capacidades','necesidades','matches','equipos','pendientes','documentos'];
+  const entities=['personas','proyectos','capacidades','necesidades','matches','equipos','pendientes','documentos','auditoria'];
   const pairs=await Promise.all(entities.map(async entity=>[entity,(await listEntity(env,entity)).map(cleanRow)]));
   return json({updatedAt:now(),data:Object.fromEntries(pairs)});
+}
+
+function parseListValue(v){
+  if(Array.isArray(v)) return v.map(String).map(x=>x.trim()).filter(Boolean);
+  const s=String(v??'').trim(); if(!s) return [];
+  try{const j=JSON.parse(s); if(Array.isArray(j)) return j.map(String).map(x=>x.trim()).filter(Boolean)}catch{}
+  return s.split(/[;\n,]+/).map(x=>x.trim()).filter(Boolean);
+}
+function parseObjectValue(v){
+  if(v&&typeof v==='object'&&!Array.isArray(v)) return {...v};
+  const s=String(v??'').trim(); if(!s) return {};
+  try{const j=JSON.parse(s); return j&&typeof j==='object'&&!Array.isArray(j)?j:{}}catch{return {}}
+}
+async function decideMatch(env, req, idValue){
+  const match=await findById(env,'matches',idValue); if(!match||deleted(match.eliminado)) return json({error:'Match no encontrado'},404);
+  const body=await req.json(), decision=String(body.decision||'').toLowerCase();
+  if(!['confirm','dismiss'].includes(decision)) return json({error:'Decisión inválida'},400);
+  if(decision==='dismiss'){
+    const rec={...cleanRow(match),estado:'descartado',fecha_actualizacion:now(),origen_informacion:'decisión operativa'};
+    await updateRow(env,ENTITY_CONFIG.matches,match.__row,rec);
+    await audit(env,'matches',match.id,'descartar','decisión operativa',match.explicacion||'');
+    return json({ok:true,match:rec});
+  }
+  const person=await findById(env,'personas',match.persona_id), project=await findById(env,'proyectos',match.proyecto_id);
+  if(!person||deleted(person.eliminado)||!project||deleted(project.eliminado)) return json({error:'Persona o proyecto del match no disponible'},409);
+  const capability=match.capacidad_id?await findById(env,'capacidades',match.capacidad_id):null;
+  const need=match.necesidad_id?await findById(env,'necesidades',match.necesidad_id):null;
+  const role=[capability?.capacidad,need?.necesidad?('cubre '+need.necesidad):''].filter(Boolean).join(' · ')||'Integrante del equipo';
+  const teams=await listEntity(env,'equipos');
+  let team=teams.find(t=>String(t.proyecto_id)===String(project.id)&&!['cerrado','eliminado','inactivo'].includes(String(t.estado||'').toLowerCase()));
+  if(!team){
+    const all=await listRows(env,ENTITY_CONFIG.equipos),ts=now();
+    const missing=(await listEntity(env,'necesidades')).filter(n=>String(n.entidad_tipo)==='proyecto'&&String(n.entidad_id)===String(project.id)&&String(n.estado||'').toLowerCase()!=='cubierta').map(n=>n.necesidad).filter(Boolean);
+    team={id:nextId(all,ENTITY_CONFIG.equipos.prefix),nombre:'Equipo · '+(project.nombre||project.id),proyecto_id:project.id,integrantes:JSON.stringify([person.id]),roles:JSON.stringify({[person.id]:role}),capacidades_cubiertas:JSON.stringify([{persona_id:person.id,capacidad_id:match.capacidad_id||'',necesidad_id:match.necesidad_id||'',descripcion:role}]),capacidades_faltantes:JSON.stringify(missing.filter(x=>x!==need?.necesidad)),estado:'activo',notas:'Creado desde un match confirmado en MESA.',responsable_id:person.id,proximos_pasos:'Definir tareas y próximos hitos.',fecha_actualizacion:ts,origen_informacion:'match confirmado',origen_referencia:match.id,eliminado:false};
+    await appendRow(env,ENTITY_CONFIG.equipos.sheet,ENTITY_CONFIG.equipos.headers.map(h=>team[h]??''));
+    await audit(env,'equipos',team.id,'crear_desde_match','match confirmado',match.id);
+  }else{
+    const current=await findById(env,'equipos',team.id);
+    const members=parseListValue(current.integrantes),roles=parseObjectValue(current.roles),covered=parseListValue(current.capacidades_cubiertas);
+    if(!members.includes(person.id)) members.push(person.id);
+    roles[person.id]=role;
+    const coverage=JSON.stringify({persona_id:person.id,capacidad_id:match.capacidad_id||'',necesidad_id:match.necesidad_id||'',descripcion:role});
+    if(!covered.includes(coverage)) covered.push(coverage);
+    const rec={...cleanRow(current),integrantes:JSON.stringify(members),roles:JSON.stringify(roles),capacidades_cubiertas:JSON.stringify(covered),estado:'activo',fecha_actualizacion:now(),origen_informacion:'match confirmado'};
+    await updateRow(env,ENTITY_CONFIG.equipos,current.__row,rec); team=rec;
+    await audit(env,'equipos',team.id,'agregar_integrante_desde_match','match confirmado',match.id+' · '+person.id);
+  }
+  const matchRec={...cleanRow(match),estado:'confirmado',fecha_actualizacion:now(),origen_informacion:'decisión operativa',origen_referencia:team.id};
+  await updateRow(env,ENTITY_CONFIG.matches,match.__row,matchRec);
+  await audit(env,'matches',match.id,'confirmar','decisión operativa',team.id+' · '+role);
+  return json({ok:true,match:matchRec,team:cleanRow(team),role});
 }
 
 async function globalSearch(env, q){
@@ -89,6 +140,7 @@ export default { async fetch(req, env){
 
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
     if(path==='/api/matches/recompute'&&req.method==='POST') { const r=await recomputeMatches(env,req); return withHeaders(r,h); }
+    const matchDecision=path.match(/^\/api\/matches\/([^/]+)\/decision$/); if(matchDecision&&req.method==='POST') { const r=await decideMatch(env,req,decodeURIComponent(matchDecision[1])); return withHeaders(r,h); }
     if(path==='/api/graph'&&req.method==='GET') { const r=await graphSnapshot(env); return withHeaders(r,h); }
     if(path==='/api/search'&&req.method==='GET') { const r=await globalSearch(env,url.searchParams.get('q')); return withHeaders(r,h); }
     if(path==='/api/documentos/upload'&&req.method==='POST') { const r=await uploadDocument(env,req); return withHeaders(r,h); }
