@@ -31,6 +31,39 @@ async function findById(env,entity,id){ return (await listRows(env,ENTITY_CONFIG
 function publicPerson(r){ return {id:r.id,nombre_completo:r.nombre_completo||[r.nombre,r.apellido].filter(Boolean).join(' '),profesion:r.profesion||'',especialidad:r.especialidad||'',tiene_proyecto_propio:r.tiene_proyecto_propio||'',estado:r.estado||'Activo'}; }
 function publicProject(r){ return {id:r.id,nombre:r.nombre||'',creador_id:r.creador_id||'',descripcion:r.descripcion||'',sector:r.sector||'',etapa:r.etapa||'',estado:r.estado||'Activo'}; }
 
+function publicCapability(r){ return {id:r.id,entidad_tipo:r.entidad_tipo||'',entidad_id:r.entidad_id||'',capacidad:r.capacidad||'',categoria:r.categoria||'',nivel:r.nivel||'',estado:r.estado||'Disponible'}; }
+function publicNeed(r){ return {id:r.id,entidad_tipo:r.entidad_tipo||'',entidad_id:r.entidad_id||'',necesidad:r.necesidad||'',categoria:r.categoria||'',prioridad:r.prioridad||'',estado:r.estado||'Abierta'}; }
+function publicMatch(r){ return {id:r.id,persona_id:r.persona_id||'',proyecto_id:r.proyecto_id||'',necesidad_id:r.necesidad_id||'',capacidad_id:r.capacidad_id||'',explicacion:r.explicacion||'',puntuacion:Number(r.puntuacion)||0,semaforo:r.semaforo||'',estado:r.estado||'sugerido'}; }
+
+async function publicDashboard(env){
+  const [people,projects,needs,caps,matches]=await Promise.all([
+    listEntity(env,'personas'),
+    listEntity(env,'proyectos'),
+    listEntity(env,'necesidades'),
+    listEntity(env,'capacidades'),
+    listEntity(env,'matches')
+  ]);
+  const peopleMap=new Map(people.map(p=>[String(p.id),publicPerson(p)]));
+  const projectMap=new Map(projects.map(p=>[String(p.id),publicProject(p)]));
+  const safeMatches=matches
+    .map(publicMatch)
+    .sort((a,b)=>b.puntuacion-a.puntuacion)
+    .slice(0,8)
+    .map(m=>({
+      ...m,
+      persona:peopleMap.get(String(m.persona_id))||null,
+      proyecto:projectMap.get(String(m.proyecto_id))||null
+    }));
+  return json({
+    counts:{personas:people.length,proyectos:projects.length,necesidades:needs.length,capacidades:caps.length,matches:matches.length},
+    personas:people.slice(0,6).map(publicPerson),
+    proyectos:projects.slice(0,6).map(publicProject),
+    necesidades:needs.slice(0,6).map(publicNeed),
+    capacidades:caps.slice(0,6).map(publicCapability),
+    matches:safeMatches
+  });
+}
+
 async function crud(env, req, entity, id){
   const cfg=ENTITY_CONFIG[entity];
   if(req.method==='GET'){
@@ -260,10 +293,26 @@ async function recomputeMatches(env, req){
 }
 
 async function globalSearch(env, q){
-  const needle=String(q||'').trim().toLowerCase(); if(!needle) return json({query:q,results:[]});
+  const needle=String(q||'').trim().toLowerCase();
+  if(!needle) return json({query:q,results:[]});
   const results=[];
-  for(const entity of PUBLIC_ENTITIES){ for(const row of await listEntity(env,entity)){ const text=Object.values(row).join(' ').toLowerCase(); if(text.includes(needle)) results.push({entity,id:row.id,label:row.nombre_completo||row.nombre||row.capacidad||row.necesidad||row.pendiente||row.id,row:cleanRow(row)}); } }
-  return json({query:q,results:results.slice(0,100)});
+  for(const row of await listEntity(env,'personas')){
+    const safe=publicPerson(row);
+    if(Object.values(safe).join(' ').toLowerCase().includes(needle)) results.push({entity:'personas',id:safe.id,label:safe.nombre_completo,row:safe});
+  }
+  for(const row of await listEntity(env,'proyectos')){
+    const safe=publicProject(row);
+    if(Object.values(safe).join(' ').toLowerCase().includes(needle)) results.push({entity:'proyectos',id:safe.id,label:safe.nombre,row:safe});
+  }
+  for(const row of await listEntity(env,'capacidades')){
+    const safe=publicCapability(row);
+    if(Object.values(safe).join(' ').toLowerCase().includes(needle)) results.push({entity:'capacidades',id:safe.id,label:safe.capacidad,row:safe});
+  }
+  for(const row of await listEntity(env,'necesidades')){
+    const safe=publicNeed(row);
+    if(Object.values(safe).join(' ').toLowerCase().includes(needle)) results.push({entity:'necesidades',id:safe.id,label:safe.necesidad,row:safe});
+  }
+  return json({query:q,results:results.slice(0,60)});
 }
 
 async function uploadDocument(env, req){
@@ -318,6 +367,7 @@ export default { async fetch(req, env){
     await ensureStore(env,ENTITY_CONFIG);
     if(path==='/api/health') { const storage=googleConfigured(env)?'google':(env.DB?'d1':'none'); return json({ok:true,service:'MESA API',storage,storageConfigured:storage!=='none',googleConfigured:googleConfigured(env)},200,h); }
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
+    if(path==='/api/public/dashboard'&&req.method==='GET') { const r=await publicDashboard(env); return withHeaders(r,h); }
     if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
     if(path==='/api/admin/bootstrap'&&req.method==='POST') { const r=await bootstrap(env,req); return withHeaders(r,h); }
