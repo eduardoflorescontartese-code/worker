@@ -19,7 +19,7 @@
         <h1 id="mainTitle">Completá tu ficha</h1>
         <p id="mainSubtitle">La información se usa para detectar conexiones útiles entre personas, capacidades, necesidades y proyectos.</p>
       </div>
-      <div class="counter"><strong id="count">0</strong><span>personas</span></div>
+      <div class="counter"><strong id="count">…</strong><span>personas</span></div>
     </section>
 
     <section id="participantArea">
@@ -156,7 +156,13 @@
     </section>
   </main>
 
-  <script src="./config.js"></script>
-  <script type="module" src="./app.js"></script>
+  <script src="./config.js?v=20261005-2"></script>
+  <script>
+    fetch('/api/public/stats',{cache:'no-store'})
+      .then(r=>r.ok?r.json():Promise.reject(new Error('stats')))
+      .then(s=>{ const el=document.getElementById('count'); if(el) el.textContent=String(s.personas ?? '—'); })
+      .catch(()=>{ const el=document.getElementById('count'); if(el) el.textContent='—'; });
+  </script>
+  <script type="module" src="./app.js?v=20261005-2"></script>
 </body>
 </html>
