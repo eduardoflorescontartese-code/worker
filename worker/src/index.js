@@ -302,7 +302,7 @@ export default { async fetch(req, env){
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     await ensureStore(env,ENTITY_CONFIG);
-    if(path==='/api/health') return json({ok:true,service:'MESA API',storage:env.DB?'d1':'none',storageConfigured:Boolean(env.DB)},200,h);
+    if(path==='/api/health') return json({ok:true,service:'MESA API',storage:'google-sheets',storageConfigured:Boolean(env.GOOGLE_SHEETS_SPREADSHEET_ID && env.GOOGLE_SERVICE_ACCOUNT_EMAIL && env.GOOGLE_PRIVATE_KEY)},200,h);
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
