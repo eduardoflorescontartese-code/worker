@@ -1,0 +1,14 @@
+name = "mesa-api"
+main = "worker/src/index.js"
+compatibility_date = "2026-09-01"
+
+[vars]
+ALLOWED_ORIGIN = "http://localhost:4173"
+
+# Configure secrets with `wrangler secret put ...`:
+# GOOGLE_CLIENT_ID
+# GOOGLE_CLIENT_SECRET
+# GOOGLE_REFRESH_TOKEN
+# GOOGLE_SPREADSHEET_ID
+# GOOGLE_DRIVE_FOLDER_ID
+# MESA_ADMIN_TOKEN
