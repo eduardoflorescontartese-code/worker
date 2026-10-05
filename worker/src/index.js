@@ -273,20 +273,16 @@ async function uploadDocument(env, req){
   if(!(file instanceof File)) return json({error:'Falta archivo'},400);
   const cfg=ENTITY_CONFIG.documentos, rows=await listRows(env,cfg), ts=now();
 
-  let storageUrl='', driveFileId='', storedName=file.name||'archivo', storedType=file.type||'application/octet-stream', created=ts;
-  if(googleConfigured(env) && env.GOOGLE_DRIVE_FOLDER_ID){
-    const drive=await uploadFileToDrive(env,file,{name:storedName});
-    storageUrl=drive.webViewLink||`https://drive.google.com/open?id=${drive.id}`;
-    driveFileId=drive.id||'';
-    storedName=drive.name||storedName;
-    storedType=drive.mimeType||storedType;
-    created=drive.createdTime||created;
-  }else{
-    if(!env.DOCS) return json({error:'No hay almacenamiento de documentos configurado'},503);
-    const key=`mesa/${Date.now()}-${crypto.randomUUID()}-${storedName.replace(/[^a-zA-Z0-9._-]+/g,'_')}`;
-    await env.DOCS.put(key,await file.arrayBuffer(),{httpMetadata:{contentType:storedType}});
-    storageUrl=`r2://DOCS/${key}`;
+  if(!googleConfigured(env) || !env.GOOGLE_DRIVE_FOLDER_ID){
+    return json({error:'Google Drive no está configurado para MESA'},503);
   }
+  let storageUrl='', driveFileId='', storedName=file.name||'archivo', storedType=file.type||'application/octet-stream', created=ts;
+  const drive=await uploadFileToDrive(env,file,{name:storedName});
+  storageUrl=drive.webViewLink||`https://drive.google.com/open?id=${drive.id}`;
+  driveFileId=drive.id||'';
+  storedName=drive.name||storedName;
+  storedType=drive.mimeType||storedType;
+  created=drive.createdTime||created;
 
   const rec={
     id:nextId(rows,cfg.prefix),
@@ -316,7 +312,7 @@ export default { async fetch(req, env){
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     await ensureStore(env,ENTITY_CONFIG);
-    if(path==='/api/health') { const storage=googleConfigured(env)?'google':(env.DB?'d1':'none'); return json({ok:true,service:'MESA API',storage,storageConfigured:storage!=='none',googleConfigured:googleConfigured(env)},200,h); }
+    if(path==='/api/health') return json({ok:true,service:'MESA API',storage:'google-sheets',storageConfigured:googleConfigured(env),googleDriveConfigured:Boolean(env.GOOGLE_DRIVE_FOLDER_ID)},200,h);
     if(path==='/api/public/stats'&&req.method==='GET') { const r=await publicStats(env); return withHeaders(r,h); }
     if(path==='/api/public/pending-ids'&&req.method==='GET') { const r=await publicPendingIds(env); return withHeaders(r,h); }
     if(path==='/api/self/persona'&&req.method==='POST') { const r=await selfSave(env,req); return withHeaders(r,h); }
