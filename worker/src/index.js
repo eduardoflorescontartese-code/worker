@@ -1,5 +1,5 @@
 import { ENTITY_CONFIG, PUBLIC_ENTITIES, normalizeEntityName, validateRecord } from './schema.js';
-import { ensureStore, listRows, appendRecord, updateRecord, googleConfigured } from './store.js';
+import { ensureStore, listRows, appendRecord, updateRecord, googleConfigured, googleCredentialsPresent } from './store.js';
 import { uploadFileToDrive } from './google.js';
 import { buildMatches } from './matching.js';
 
@@ -372,15 +372,23 @@ export default { async fetch(req, env){
     const url=new URL(req.url); const path=url.pathname.replace(/\/+$/,'')||'/';
     if(!path.startsWith('/api/') && env.ASSETS) return env.ASSETS.fetch(req);
     if(path==='/api/health') {
-      const storage=googleConfigured(env)?'google':(env.DB?'d1':'none');
-      let storeReady=true, storeError='';
-      try{ await ensureStore(env,ENTITY_CONFIG); }catch(e){ storeReady=false; storeError=e?.message||String(e); }
+      let storeReady=true, storeError='', storage='none';
+      try{
+        const store=await ensureStore(env,ENTITY_CONFIG);
+        storage=store?.backend||'none';
+      }catch(e){
+        storeReady=false;
+        storeError=e?.message||String(e);
+        storage=googleConfigured(env)?'google':(env.DB?'d1':'none');
+      }
       return json({
         ok:storeReady,
         service:'MESA API',
         storage,
         storageConfigured:storage!=='none',
         googleConfigured:googleConfigured(env),
+        googleCredentialsPresent:googleCredentialsPresent(env),
+        googlePrimaryEnabled:env.GOOGLE_PRIMARY_ENABLED!=='false',
         googleConfig:{
           clientId:Boolean(env.GOOGLE_CLIENT_ID),
           clientSecret:Boolean(env.GOOGLE_CLIENT_SECRET),
