@@ -10,7 +10,7 @@ function cors(env, req){
   const allowed = env.ALLOWED_ORIGIN || '*';
   return {'access-control-allow-origin': allowed==='*' ? '*' : (origin===allowed ? origin : allowed),'access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'GET,POST,PUT,DELETE,OPTIONS','vary':'Origin'};
 }
-const ADMIN_FALLBACK_HASH='c0007e0f3c50636a4edc1860dfeba3676dfc2fef5c57ad6e3a0f2d490e65d201';
+const ADMIN_FALLBACK_HASH='820c59c46d80d7da228a6346a96d36a6e22beda13750d968ad7ce9a4aabf1f51';
 async function sha256Hex(value){ const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(String(value||''))); return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
 async function authorized(env, req){
   const h=req.headers.get('authorization')||'';
