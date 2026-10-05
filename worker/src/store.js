@@ -2,12 +2,15 @@ import { ensureSheets, listRows as listGoogleRows, appendRecordRow, updateRow as
 
 const D1_TABLE='mesa_v2_records';
 
-export const googleConfigured = env => Boolean(
+export const googleCredentialsPresent = env => Boolean(
   env.GOOGLE_SPREADSHEET_ID &&
   env.GOOGLE_REFRESH_TOKEN &&
   env.GOOGLE_CLIENT_ID &&
   env.GOOGLE_CLIENT_SECRET
 );
+
+export const googleConfigured = env =>
+  env.GOOGLE_PRIMARY_ENABLED !== 'false' && googleCredentialsPresent(env);
 
 function entityKey(cfg){
   return String(cfg?.sheet||'').trim().toLowerCase();
