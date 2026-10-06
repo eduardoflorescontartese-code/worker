@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>MESA — Administración privada</title>
+<link rel="stylesheet" href="/control.css?v=1">
+</head>
+<body>
+<section id="login" class="login">
+  <form id="loginForm" class="login-card">
+    <div class="wordmark">MESA <b>ADMIN</b></div>
+    <h1>Administración privada</h1>
+    <p>Acceso exclusivo para gestionar personas, proyectos, equipos, necesidades, documentos y seguimiento.</p>
+    <label>Clave administrativa</label>
+    <input id="token" type="password" autocomplete="current-password" required placeholder="Ingresá tu clave">
+    <button>Entrar</button><div id="loginMsg" class="msg err" hidden></div>
+    <small>La clave queda solamente en esta sesión del navegador.</small>
+  </form>
+</section>
+
+<div id="app" class="app" hidden>
+<aside>
+  <div class="wordmark side">MESA <b>ADMIN</b></div>
+  <button class="nav active" data-entity="resumen">Resumen</button>
+  <div class="cap">GESTIÓN</div>
+  <div id="navEntities"></div>
+  <div class="aside-bottom"><a href="/" target="_blank">Abrir MESA pública ↗</a><button id="logout" class="nav">Cerrar sesión</button></div>
+</aside>
+<main>
+<header><div><h1 id="title">Resumen</h1><p id="subtitle">Control operativo y seguimiento interno</p></div><div class="actions"><span class="online">● Conectado</span><button id="refresh" class="ghost">Actualizar</button></div></header>
+<section id="summary">
+  <div id="stats" class="stats"></div>
+  <div class="two">
+    <article class="card"><h2>Acciones rápidas</h2><p>Administración y matching</p><div class="quick"><button data-new="personas">+ Persona</button><button data-new="proyectos">+ Proyecto</button><button data-new="equipos">+ Equipo</button><button id="recompute" class="ghost">Recalcular matching</button></div><div id="actionMsg" class="msg" hidden></div></article>
+    <article class="card"><h2>Estado</h2><p>Persistencia y control</p><div id="system"></div></article>
+  </div>
+  <article class="card"><div class="card-head"><div><h2>Proyectos y equipos</h2><p>Seguimiento interno de lo que se está armando</p></div></div><div id="projectOverview" class="project-grid"></div></article>
+  <article class="card"><h2>Actividad reciente</h2><p>Auditoría de cambios</p><div id="activity" class="table"></div></article>
+</section>
+
+<section id="entitySection" hidden>
+  <div class="toolbar"><input id="search" type="search" placeholder="Buscar..."><button id="newRecord">+ Nuevo registro</button></div>
+  <article class="card"><div class="card-head"><div><h2 id="entityTitle"></h2><p id="count"></p></div></div><div id="records" class="table"></div></article>
+</section>
+</main>
+</div>
+
+<div id="modal" class="modal" hidden><div class="modal-card">
+<header><div><h2 id="modalTitle"></h2><p id="modalSub"></p></div><button id="modalClose" class="x">×</button></header>
+<form id="editForm"><div id="fields" class="fields"></div><footer><button type="button" id="cancel" class="ghost">Cancelar</button><button>Guardar</button></footer></form>
+</div></div>
+
+<div id="detail" class="drawer-wrap" hidden><aside class="drawer"><header><div><h2 id="detailTitle"></h2><p id="detailSub"></p></div><button id="detailClose" class="x">×</button></header><div id="detailBody"></div></aside></div>
+<script type="module" src="/control.js?v=1"></script>
+</body></html>
