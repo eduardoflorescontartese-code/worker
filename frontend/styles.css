@@ -584,3 +584,82 @@ html,body{overflow-x:hidden}
 @media(max-width:1050px){
   .topbar-tagline{display:none}
 }
+
+/* Ajuste final de fidelidad y viewport — 2026-10-06 */
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+body{font-size:14px}
+.app-shell{
+  width:100%;
+  max-width:100vw;
+  grid-template-columns:180px minmax(0,1fr);
+  overflow-x:hidden
+}
+.workspace{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:hidden
+}
+.dashboard{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  grid-template-columns:minmax(260px,.95fr) minmax(0,2fr) minmax(280px,1fr);
+  gap:10px;
+  padding:12px;
+  overflow:visible
+}
+.panel,.suggestions-column,.matching-panel,.recommendations{min-width:0;max-width:100%}
+
+.brand{padding:0 14px 20px}
+.brand strong{font-size:29px;line-height:1}
+.brand span{font-size:11px;line-height:1.4;margin-top:5px}
+.nav-item{font-size:13px;padding:11px 12px}
+.nav-item span{font-size:18px}
+.sidebar-impact>p{font-size:12px}
+.side-stat strong{font-size:14px}
+.side-stat small{font-size:8.5px}
+
+.topbar{height:60px;padding:0 18px}
+.search-wrap{width:min(470px,42vw);height:38px}
+.search-wrap input{font-size:11px}
+.visitor strong{font-size:11px}
+.visitor span{font-size:9px}
+
+.suggestion-title{height:60px;padding:15px 14px 10px}
+.suggestion-title h2{font-size:17px}
+.suggestion-tab{font-size:10px;padding:10px 4px}
+.suggestion-tab span{font-size:9px}
+.suggestion-row{min-height:76px;padding:11px 12px}
+.suggestion-row strong{font-size:11.5px}
+.suggestion-row p{font-size:9px}
+.chip,.entity-chip{font-size:7.5px}
+
+.matching-head{padding:14px 14px 11px;gap:12px}
+.matching-copy h1{font-size:27px}
+.matching-copy span{font-size:10px;line-height:1.4}
+.matching-controls label{font-size:7.5px;min-width:88px}
+.matching-controls select{font-size:8.5px}
+.empty-state h3{font-size:16px}
+.empty-state p{font-size:9.5px}
+
+.recommendations{padding:12px}
+.recommendations-head h2{font-size:16px}
+.recommendations-head p{font-size:8.5px}
+.rec-head strong{font-size:11px}
+.rec-head small{font-size:8px}
+.rec-score{font-size:10.5px}
+.rec-action{font-size:8.5px}
+.rec-bullets div{font-size:7.5px}
+
+.topbar-tagline{display:none!important}
+
+@media(max-width:1400px) and (min-width:1101px){
+  .dashboard{
+    grid-template-columns:minmax(250px,.95fr) minmax(0,2fr) minmax(265px,1fr);
+    gap:8px;
+    padding:10px
+  }
+  .matching-controls{gap:4px}
+  .matching-controls label{min-width:82px;padding:5px 6px}
+}

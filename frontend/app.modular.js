@@ -115,10 +115,15 @@ function initSearch(){
 function initPublicControls(){
   $('#refreshDashboard').addEventListener('click',loadDashboard);
 
-  $$('.nav-item').forEach(button=>
-    button.addEventListener('click',()=>
-      navigation.renderSection(button.dataset.nav||'matching')
-    )
+  $('.nav-item').forEach(button=>
+    button.addEventListener('click',()=>{
+      const view=button.dataset.nav||'matching';
+      if(view==='inicio'){
+        intake.open();
+        return;
+      }
+      navigation.renderSection(view);
+    })
   );
 
   $('#notificationsBtn').addEventListener('click',()=>{
@@ -180,4 +185,7 @@ if(hp.admin){
   history.replaceState(null,'',location.pathname+location.search);
 }else{
   loadDashboard();
+  if(hp.edit||hp.email){
+    setTimeout(()=>intake.open(),0);
+  }
 }
