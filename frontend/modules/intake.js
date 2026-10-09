@@ -8,7 +8,13 @@ export function createIntake({$, $$, api, hashParams, loadDashboard}){
       .replace(/=+$/,'');
   };
 
-  const localKey=email=>'mesa_edit_'+String(email||'').trim().toLowerCase();
+  const localKey=email=>'mesa_edit_'+(String(email||'').trim().toLowerCase()||'anonymous');
+  const clientIdKey='mesa_public_client_id';
+  function clientId(){
+    let id=localStorage.getItem(clientIdKey)||'';
+    if(!id){ id=randomToken(); localStorage.setItem(clientIdKey,id); }
+    return id;
+  }
 
   function participantToken(email){
     const hp=hashParams();
@@ -60,6 +66,7 @@ export function createIntake({$, $$, api, hashParams, loadDashboard}){
         await api.selfSave({
           nombre_completo:$('#name').value.trim(),
           email,
+          client_id:clientId(),
           profesion:$('#profession').value.trim(),
           especialidad:$('#specialty').value.trim(),
           proyecto:$('#project').value.trim(),
