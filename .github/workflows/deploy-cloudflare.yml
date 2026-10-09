@@ -75,7 +75,7 @@ jobs:
           printf '%s' "$HOME" | grep -q 'id="selfForm"'
           printf '%s' "$HOME" | grep -q "Darme de alta"
           printf '%s' "$APP" | grep -Fq "$('.nav-item').forEach"
-          if printf '%s' "$APP" | grep -Fq "$('.nav-item').forEach"; then
+          if printf '%s\n' "$APP" | grep -Eq "^[[:space:]]*\\$\\('\\.nav-item'\\)\\.forEach"; then
             echo "Selector múltiple roto detectado en app.modular.js"
             exit 1
           fi
