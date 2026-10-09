@@ -66,7 +66,6 @@ test('flujo público completo: personas, proyecto, señales, búsqueda y matchin
     method:'POST',
     body:{
       nombre_completo:'Persona Uno',
-      email:'uno@example.test',
       edit_token:'token-persona-uno-12345678901234567890',
       profesion:'Diseño de producto',
       especialidad:'UX',
@@ -78,13 +77,33 @@ test('flujo público completo: personas, proyecto, señales, búsqueda y matchin
       puede_aportar:'Diseño UX y producto'
     }
   });
-  assert.equal(first.status,200,await first.text());
+  const firstText=await first.text();
+  assert.equal(first.status,200,firstText);
+  const firstBody=JSON.parse(firstText);
+  assert.ok(firstBody.persona?.id,'el alta anónima debe devolver ID');
+
+  const edit=await call(worker,environment,'/api/self/persona',{
+    method:'POST',
+    body:{
+      participant_id:firstBody.persona.id,
+      nombre_completo:'Persona Uno Editada',
+      edit_token:'token-persona-uno-12345678901234567890',
+      profesion:'Diseño de producto',
+      especialidad:'UX',
+      proyecto:'Proyecto Alfa',
+      etapa:'MVP',
+      sector:'Tecnología',
+      descripcion_proyecto:'Plataforma que necesita backend para completar el MVP.',
+      busca:'Backend Node API',
+      puede_aportar:'Diseño UX y producto'
+    }
+  });
+  assert.equal(edit.status,200,await edit.text());
 
   const second=await call(worker,environment,'/api/self/persona',{
     method:'POST',
     body:{
       nombre_completo:'Persona Dos',
-      email:'dos@example.test',
       edit_token:'token-persona-dos-12345678901234567890',
       profesion:'Backend Node API',
       especialidad:'Node.js',
@@ -103,6 +122,7 @@ test('flujo público completo: personas, proyecto, señales, búsqueda y matchin
   const dash=await dashRes.json();
 
   assert.equal(dash.counts.personas,2);
+  assert.ok(dash.personas.some(p=>p.nombre_completo==='Persona Uno Editada'),'debe editar por ID local sin correo');
   assert.equal(dash.counts.proyectos,1);
   assert.ok(dash.counts.capacidades>=3,'debe derivar capacidades');
   assert.ok(dash.counts.necesidades>=1,'debe derivar necesidades');
