@@ -66,12 +66,19 @@ jobs:
           HEALTH="$(curl -sS "$BASE/api/health")"
           STATS="$(curl -sS "$BASE/api/public/stats")"
           DASH="$(curl -sS "$BASE/api/public/dashboard")"
+          APP="$(curl -sS "$BASE/app.modular.js")"
           echo "HEALTH=$HEALTH"
           echo "STATS=$STATS"
           printf '%s' "$HOME" | grep -q "Panel de Matching"
           printf '%s' "$HOME" | grep -q "Sugerencias para vos"
           printf '%s' "$HOME" | grep -q "Recomendaciones de MESA"
           printf '%s' "$HOME" | grep -q 'id="selfForm"'
+          printf '%s' "$HOME" | grep -q "Darme de alta"
+          printf '%s' "$APP" | grep -Fq "$('.nav-item').forEach"
+          if printf '%s' "$APP" | grep -Fq "$('.nav-item').forEach"; then
+            echo "Selector múltiple roto detectado en app.modular.js"
+            exit 1
+          fi
           if printf '%s' "$HOME" | grep -Eqi "inici[aá] sesi[oó]n|login obligatorio|contraseña obligatoria"; then
             echo "La interfaz pública contiene una barrera de acceso inesperada"
             exit 1
