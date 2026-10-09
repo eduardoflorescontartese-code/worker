@@ -115,7 +115,7 @@ function initSearch(){
 function initPublicControls(){
   $('#refreshDashboard').addEventListener('click',loadDashboard);
 
-  $('.nav-item').forEach(button=>
+  $$('.nav-item').forEach(button=>
     button.addEventListener('click',()=>{
       const view=button.dataset.nav||'matching';
       if(view==='inicio'){
