@@ -74,6 +74,11 @@ jobs:
           printf '%s' "$HOME" | grep -q "Recomendaciones de MESA"
           printf '%s' "$HOME" | grep -q 'id="selfForm"'
           printf '%s' "$HOME" | grep -q "Darme de alta"
+          printf '%s' "$HOME" | grep -q "Entrada libre. No necesitás cuenta, correo ni contraseña."
+          if printf '%s' "$HOME" | grep -Fq 'id="email"'; then
+            echo "El alta pública todavía exige o muestra correo."
+            exit 1
+          fi
           printf '%s' "$APP" | grep -Fq "$('.nav-item').forEach"
           if printf '%s\n' "$APP" | grep -Eq "^[[:space:]]*\\$\\('\\.nav-item'\\)\\.forEach"; then
             echo "Selector múltiple roto detectado en app.modular.js"

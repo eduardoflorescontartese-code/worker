@@ -1,4 +1,7 @@
 export function createIntake({$, $$, api, hashParams, loadDashboard}){
+  const TOKEN_KEY='mesa_self_edit_token';
+  const PERSON_KEY='mesa_self_person_id';
+
   const randomToken=()=>{
     const a=new Uint8Array(32);
     crypto.getRandomValues(a);
@@ -8,27 +11,24 @@ export function createIntake({$, $$, api, hashParams, loadDashboard}){
       .replace(/=+$/,'');
   };
 
-  const localKey=email=>'mesa_edit_'+String(email||'').trim().toLowerCase();
-
-  function participantToken(email){
+  function participantToken(){
     const hp=hashParams();
     if(hp.edit)return hp.edit;
-    let token=localStorage.getItem(localKey(email))||'';
+    let token=localStorage.getItem(TOKEN_KEY)||'';
     if(!token){
       token=randomToken();
-      localStorage.setItem(localKey(email),token);
+      localStorage.setItem(TOKEN_KEY,token);
     }
     return token;
+  }
+
+  function participantId(){
+    return localStorage.getItem(PERSON_KEY)||'';
   }
 
   function open(){
     $('#intakeModal').hidden=false;
     document.body.style.overflow='hidden';
-    const hp=hashParams();
-    if(hp.email){
-      $('#email').value=hp.email;
-      $('#email').readOnly=true;
-    }
     setTimeout(()=>$('#name')?.focus(),50);
   }
 
@@ -52,14 +52,13 @@ export function createIntake({$, $$, api, hashParams, loadDashboard}){
     $('#selfForm').addEventListener('submit',async e=>{
       e.preventDefault();
       const status=$('#formStatus');
-      const email=$('#email').value.trim();
       status.textContent='Guardando…';
 
       try{
-        const token=participantToken(email);
-        await api.selfSave({
+        const token=participantToken();
+        const result=await api.selfSave({
+          participant_id:participantId(),
           nombre_completo:$('#name').value.trim(),
-          email,
           profesion:$('#profession').value.trim(),
           especialidad:$('#specialty').value.trim(),
           proyecto:$('#project').value.trim(),
@@ -72,7 +71,11 @@ export function createIntake({$, $$, api, hashParams, loadDashboard}){
           website:$('#website')?.value||''
         });
 
-        localStorage.setItem(localKey(email),token);
+        if(result?.persona?.id){
+          localStorage.setItem(PERSON_KEY,String(result.persona.id));
+          localStorage.setItem(TOKEN_KEY,token);
+        }
+
         status.textContent='Listo. Tu información quedó guardada en MESA.';
         await loadDashboard();
         setTimeout(close,900);

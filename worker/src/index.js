@@ -129,26 +129,37 @@ async function crud(env, req, entity, id){
 async function selfSave(env, req){
   const body=await readJsonLimited(req,32*1024);
   if(bounded(body.website,200)) return json({ok:true});
-  const email=bounded(body.email,254).toLowerCase();
+
   const nombre=bounded(body.nombre_completo,120);
   const editToken=bounded(body.edit_token,256);
+  const requestedId=bounded(body.participant_id,40);
+  const optionalEmail=bounded(body.email,254).toLowerCase();
+
   if(!nombre) return json({error:'El nombre es obligatorio'},400);
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({error:'Ingresá un correo válido'},400);
-  if(editToken.length<20) return json({error:'Falta tu enlace personal de edición'},403);
+  if(editToken.length<20) return json({error:'No se pudo proteger tu ficha. Recargá la página e intentá de nuevo.'},403);
 
   const tokenHash=await sha256Hex(editToken);
   const cfg=ENTITY_CONFIG.personas;
   const rows=await listRows(env,cfg);
-  let current=rows.find(r=>String(r.email||'').trim().toLowerCase()===email && !deleted(r.eliminado));
-  const ts=now();
 
-  if(current?.self_edit_hash && current.self_edit_hash!==tokenHash){
-    return json({error:'Esta ficha solo puede editarse desde su enlace personal'},403);
+  let current=null;
+  if(requestedId){
+    current=rows.find(r=>String(r.id||'')===requestedId && !deleted(r.eliminado))||null;
   }
 
+  // Compatibilidad con fichas anteriores que sí usaban correo, sin exigirlo a nadie nuevo.
+  if(!current && optionalEmail && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(optionalEmail)){
+    current=rows.find(r=>String(r.email||'').trim().toLowerCase()===optionalEmail && !deleted(r.eliminado))||null;
+  }
+
+  if(current?.self_edit_hash && current.self_edit_hash!==tokenHash){
+    return json({error:'Esta ficha está protegida por su clave local de edición'},403);
+  }
+
+  const ts=now();
   const allowed={
     nombre_completo:nombre,
-    email,
+    email:optionalEmail || current?.email || '',
     self_edit_hash:current?.self_edit_hash||tokenHash,
     profesion:bounded(body.profesion,160),
     especialidad:bounded(body.especialidad,160),
@@ -188,6 +199,7 @@ async function selfSave(env, req){
       origen_informacion:'autocarga web',
       eliminado:false
     };
+
     if(existing){
       const prec={...cleanRow(existing),...pdata,id:existing.id};
       await updateRecord(env,pcfg,existing.__row,prec);
@@ -198,9 +210,15 @@ async function selfSave(env, req){
       await audit(env,'proyectos',prec.id,'autocarga/crear','autocarga web');
     }
   }
+
   let matchingResult={ok:true,created:0,verdes:0,amarillos:0};
   try{ matchingResult=await matchingService.recomputeMatchesCore(env); }catch{}
-  return json({ok:true,persona:{id:person.id,nombre_completo:person.nombre_completo,estado:person.estado},matching:matchingResult});
+
+  return json({
+    ok:true,
+    persona:{id:person.id,nombre_completo:person.nombre_completo,estado:person.estado},
+    matching:matchingResult
+  });
 }
 
 async function bootstrap(env, req){
