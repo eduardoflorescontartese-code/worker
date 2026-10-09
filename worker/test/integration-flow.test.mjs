@@ -66,7 +66,8 @@ test('flujo público completo: personas, proyecto, señales, búsqueda y matchin
     method:'POST',
     body:{
       nombre_completo:'Persona Uno',
-      email:'uno@example.test',
+      email:'',
+      client_id:'client-uno-public-1234567890',
       edit_token:'token-persona-uno-12345678901234567890',
       profesion:'Diseño de producto',
       especialidad:'UX',
@@ -84,7 +85,8 @@ test('flujo público completo: personas, proyecto, señales, búsqueda y matchin
     method:'POST',
     body:{
       nombre_completo:'Persona Dos',
-      email:'dos@example.test',
+      email:'',
+      client_id:'client-dos-public-1234567890',
       edit_token:'token-persona-dos-12345678901234567890',
       profesion:'Backend Node API',
       especialidad:'Node.js',
