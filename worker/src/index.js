@@ -132,14 +132,18 @@ async function selfSave(env, req){
   const email=bounded(body.email,254).toLowerCase();
   const nombre=bounded(body.nombre_completo,120);
   const editToken=bounded(body.edit_token,256);
+  const clientId=bounded(body.client_id,120);
   if(!nombre) return json({error:'El nombre es obligatorio'},400);
-  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({error:'Ingresá un correo válido'},400);
+  if(email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({error:'Ingresá un correo válido'},400);
   if(editToken.length<20) return json({error:'Falta tu enlace personal de edición'},403);
+  if(!email && clientId.length<16) return json({error:'No se pudo identificar esta ficha pública'},400);
 
   const tokenHash=await sha256Hex(editToken);
   const cfg=ENTITY_CONFIG.personas;
   const rows=await listRows(env,cfg);
-  let current=rows.find(r=>String(r.email||'').trim().toLowerCase()===email && !deleted(r.eliminado));
+  let current=email
+    ? rows.find(r=>String(r.email||'').trim().toLowerCase()===email && !deleted(r.eliminado))
+    : rows.find(r=>String(r.origen_referencia||'')===('public:'+clientId) && !deleted(r.eliminado));
   const ts=now();
 
   if(current?.self_edit_hash && current.self_edit_hash!==tokenHash){
@@ -150,6 +154,7 @@ async function selfSave(env, req){
     nombre_completo:nombre,
     email,
     self_edit_hash:current?.self_edit_hash||tokenHash,
+    origen_referencia:current?.origen_referencia||('public:'+clientId),
     profesion:bounded(body.profesion,160),
     especialidad:bounded(body.especialidad,160),
     puede_aportar:bounded(body.puede_aportar,3000),
