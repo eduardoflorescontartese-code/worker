@@ -1,4 +1,4 @@
-export function createIntake({$, $$, api, hashParams, loadDashboard}){
+export function createIntake({$, $$, api, hashParams, loadDashboard, getDashboard}){
   const TOKEN_KEY='mesa_self_edit_token';
   const PERSON_KEY='mesa_self_person_id';
 
@@ -26,7 +26,47 @@ export function createIntake({$, $$, api, hashParams, loadDashboard}){
     return localStorage.getItem(PERSON_KEY)||'';
   }
 
+  function currentProfile(){
+    const id=participantId();
+    if(!id)return null;
+    return (getDashboard()?.personas||[]).find(p=>String(p.id)===id)||null;
+  }
+
+  function refreshAccount(){
+    const p=currentProfile();
+    const visitor=$('.visitor');
+    if(!visitor)return;
+    const strong=visitor.querySelector('strong');
+    const subtitle=visitor.querySelector('span');
+    const avatar=visitor.querySelector('.avatar');
+    if(strong)strong.textContent=p?.nombre_completo||'Visitante MESA';
+    if(subtitle)subtitle.textContent=p?'Perfil público activo':'Completá tu ficha para hacer match';
+    if(avatar)avatar.textContent=p?.nombre_completo?.trim()?.charAt(0)?.toUpperCase()||'M';
+  }
+
+  function fillPublicProfile(){
+    const p=currentProfile();
+    if(!p)return;
+    const owned=(getDashboard()?.proyectos||[]).find(pr=>String(pr.creador_id)===String(p.id));
+    const pairs=[
+      ['#name',p.nombre_completo],
+      ['#profession',p.profesion],
+      ['#specialty',p.especialidad],
+      ['#needs',p.busca],
+      ['#contribute',p.puede_aportar],
+      ['#project',owned?.nombre],
+      ['#stage',owned?.etapa],
+      ['#sector',owned?.sector],
+      ['#projectDescription',owned?.descripcion]
+    ];
+    for(const [selector,value] of pairs){
+      const input=$(selector);
+      if(input && value!==undefined)input.value=value||'';
+    }
+  }
+
   function open(){
+    fillPublicProfile();
     $('#intakeModal').hidden=false;
     document.body.style.overflow='hidden';
     setTimeout(()=>$('#name')?.focus(),50);
@@ -78,6 +118,7 @@ export function createIntake({$, $$, api, hashParams, loadDashboard}){
 
         status.textContent='Listo. Tu información quedó guardada en MESA.';
         await loadDashboard();
+        refreshAccount();
         setTimeout(close,900);
       }catch(err){
         status.textContent='No se pudo guardar: '+err.message;
@@ -85,5 +126,5 @@ export function createIntake({$, $$, api, hashParams, loadDashboard}){
     });
   }
 
-  return {init,open,close,bindButtons};
+  return {init,open,close,bindButtons,refreshAccount};
 }
