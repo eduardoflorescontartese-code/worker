@@ -152,15 +152,19 @@ export function createPublicApi({listEntity,json}){
     if(!needle)return json({query:q,results:[]});
     const results=[];
 
-    for(const row of await listEntity(env,'personas')){
+    const searchablePeople=await listEntity(env,'personas');
+    const searchablePeopleMap=new Map(searchablePeople.map(p=>[String(p.id),publicPerson(p)]));
+    for(const row of searchablePeople){
       const safe=publicPerson(row);
       if(Object.values(safe).join(' ').toLowerCase().includes(needle))
         results.push({entity:'personas',id:safe.id,label:safe.nombre_completo,row:safe});
     }
     for(const row of await listEntity(env,'proyectos')){
       const safe=publicProject(row);
-      if(Object.values(safe).join(' ').toLowerCase().includes(needle))
-        results.push({entity:'proyectos',id:safe.id,label:safe.nombre,row:safe});
+      const owner=searchablePeopleMap.get(String(safe.creador_id||''))||null;
+      const publicWithOwner={...safe,creador:owner,autor_nombre:owner?.nombre_completo||'Responsable pendiente de identificar'};
+      if([safe.nombre,safe.sector,safe.etapa,safe.descripcion,publicWithOwner.autor_nombre].join(' ').toLowerCase().includes(needle))
+        results.push({entity:'proyectos',id:safe.id,label:safe.nombre,row:publicWithOwner});
     }
     for(const row of await listEntity(env,'capacidades')){
       const safe=publicCapability(row);
