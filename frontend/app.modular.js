@@ -153,7 +153,11 @@ navigation=createNavigation({
 
 suggestions=createSuggestions({
   $, $$, esc,
-  getDashboard:()=>dashboard
+  getDashboard:()=>dashboard,
+  onSelect:(entity,id)=>{
+    if(entity==='proyectos')navigation.showProject(id);
+    else if(entity==='personas')navigation.showPerson(id);
+  }
 });
 
 recommendations=createRecommendations({
@@ -173,6 +177,7 @@ admin=createAdmin({$, api, esc, emptyMini});
 
 intake.init();
 admin.init();
+navigation.init();
 suggestions.init();
 matchingView.init();
 recommendations.init();
