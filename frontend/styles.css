@@ -684,3 +684,7 @@ body{font-size:14px}
 .owner-profile-link{border:1px solid #b8d2ff;background:#f0f6ff;border-radius:8px;padding:10px 14px;color:#0745ab;font-weight:700;text-align:left}
 .owner-profile-link:hover{background:#dfecff}
 .profile-related .directory-card{margin-top:8px}
+
+.inline-profile-link{border:0;padding:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;text-align:left;text-decoration:underline;text-decoration-color:#aecfff;text-underline-offset:3px}
+.inline-profile-link:hover{color:#0757d5}
+.inline-profile-link:focus-visible{outline:2px solid #0757d5;outline-offset:2px;border-radius:2px}
