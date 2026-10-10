@@ -86,14 +86,14 @@ export function createMatchingView({$, esc, getDashboard, bindIntakeButtons}){
       '<div class="match-pair">'+
         '<div class="match-entity">'+
           '<div class="entity-icon person-icon">'+esc(initials)+'<i class="entity-status '+dotClass+'"></i></div>'+
-          '<div><span>Persona</span><strong>'+esc(personName)+'</strong>'+
+          '<div><span>Persona</span><strong><button type="button" class="inline-profile-link" data-show-person="'+esc(person.id||'')+'">'+esc(personName)+'</button></strong>'+
           '<small>'+esc([person.profesion,person.especialidad].filter(Boolean).join(' · ')||'Perfil MESA')+'</small>'+
           '<div class="entity-chips">'+chips([person.profesion,person.especialidad])+'</div></div>'+
         '</div>'+
         '<div class="pair-arrow">↔</div>'+
         '<div class="match-entity project">'+
           '<div class="entity-icon project-icon">▣</div>'+
-          '<div><span>Proyecto</span><strong>'+esc(projectName)+'</strong>'+
+          '<div><span>Proyecto</span><strong><button type="button" class="inline-profile-link" data-show-project="'+esc(project.id||'')+'">'+esc(projectName)+'</button></strong>'+
           '<small>'+esc(project.descripcion||[project.sector,project.etapa].filter(Boolean).join(' · ')||'Proyecto MESA')+'</small>'+
           '<div class="entity-chips">'+chips([project.sector,project.etapa])+'</div></div>'+
           '<button class="bookmark-btn" type="button" aria-label="Guardar match">♡</button>'+
