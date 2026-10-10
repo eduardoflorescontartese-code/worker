@@ -53,6 +53,7 @@ function renderDashboard(){
 async function loadDashboard(){
   try{
     dashboard=await api.dashboard();
+    intake.refreshAccount();
     renderDashboard();
     const view=navigation.getActiveView();
     if(view!=='inicio'&&view!=='matching')navigation.renderSection(view);
@@ -136,7 +137,7 @@ function initPublicControls(){
   });
 }
 
-intake=createIntake({$, $$, api, hashParams, loadDashboard});
+intake=createIntake({$, $$, api, hashParams, loadDashboard, getDashboard:()=>dashboard});
 
 matchingView=createMatchingView({
   $, esc,
