@@ -663,3 +663,28 @@ body{font-size:14px}
   .matching-controls{gap:4px}
   .matching-controls label{min-width:82px;padding:5px 6px}
 }
+
+
+/* MESA: fichas públicas y navegación de autoría, sin alterar el diseño principal. */
+.suggestion-row[data-suggestion-project],
+.suggestion-row[data-suggestion-person],
+.clickable-directory,
+.directory-card[data-show-project] {cursor:pointer}
+.suggestion-row[data-suggestion-project]:hover,
+.suggestion-row[data-suggestion-person]:hover,
+.clickable-directory:hover .directory-card,
+.directory-card[data-show-project]:hover {outline:2px solid #aacbff;outline-offset:-2px}
+.suggestion-row[data-suggestion-project]:focus-visible,
+.suggestion-row[data-suggestion-person]:focus-visible,
+.clickable-directory:focus-visible,
+.directory-card[data-show-project]:focus-visible {outline:3px solid #0757d5;outline-offset:2px}
+.profile-related{background:#fff;border:1px solid var(--line);padding:18px;border-radius:12px;margin-top:12px}
+.profile-related h3{font-size:15px;margin:0 0 12px;color:var(--navy)}
+.profile-related p{font-size:13px;color:var(--muted)}
+.owner-profile-link{border:1px solid #b8d2ff;background:#f0f6ff;border-radius:8px;padding:10px 14px;color:#0745ab;font-weight:700;text-align:left}
+.owner-profile-link:hover{background:#dfecff}
+.profile-related .directory-card{margin-top:8px}
+
+.inline-profile-link{border:0;padding:0;background:transparent;color:inherit;font:inherit;font-weight:inherit;text-align:left;text-decoration:underline;text-decoration-color:#aecfff;text-underline-offset:3px}
+.inline-profile-link:hover{color:#0757d5}
+.inline-profile-link:focus-visible{outline:2px solid #0757d5;outline-offset:2px;border-radius:2px}

@@ -1,4 +1,4 @@
-export function createSuggestions({$, $$, esc, getDashboard}){
+export function createSuggestions({$, $$, esc, getDashboard, onSelect}){
   let active='personas';
 
   function initials(name){
@@ -56,7 +56,7 @@ export function createSuggestions({$, $$, esc, getDashboard}){
       const rows=d.personas||[];
       box.innerHTML=rows.length?rows.map((p,i)=>{
         const score=bestScore('persona',p.id);
-        return '<article class="suggestion-row '+(i===0?'selected':'')+'">'+
+        return '<article class="suggestion-row '+(i===0?'selected':'')+'" data-suggestion-person="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Ver perfil público">'+
           '<div class="person-dot">'+esc(initials(p.nombre_completo))+'</div>'+
           '<div><strong>'+esc(p.nombre_completo||'Persona')+'</strong>'+
           '<p>'+esc([p.profesion,p.especialidad].filter(Boolean).join(' · ')||'Perfil en MESA')+'</p>'+
@@ -71,10 +71,11 @@ export function createSuggestions({$, $$, esc, getDashboard}){
       const rows=d.proyectos||[];
       box.innerHTML=rows.length?rows.map((p,i)=>{
         const score=bestScore('proyecto',p.id);
-        return '<article class="suggestion-row '+(i===0?'selected':'')+'">'+
+        return '<article class="suggestion-row '+(i===0?'selected':'')+'" data-suggestion-project="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Ver detalles del proyecto">'+
           '<div class="project-dot">▣</div>'+
           '<div><strong>'+esc(p.nombre||'Proyecto')+'</strong>'+
           '<p>'+esc([p.sector,p.etapa].filter(Boolean).join(' · ')||'Proyecto en MESA')+'</p>'+
+          '<p>Responsable: '+esc(p.creador?.nombre_completo||'Pendiente de identificar')+'</p>'+
           '<div class="chips">'+[p.sector,p.etapa].filter(Boolean).slice(0,2).map(x=>'<span class="chip">'+esc(x)+'</span>').join('')+'</div></div>'+
           (score===null?'<span class="row-arrow">›</span>':'<span class="suggestion-score">'+score.toFixed(1)+'</span>')+
         '</article>';
@@ -97,6 +98,20 @@ export function createSuggestions({$, $$, esc, getDashboard}){
       active=b.dataset.suggestionTab||'personas';
       render();
     }));
+    const box=$('#suggestionList');
+    const select=target=>{
+      const person=target.closest('[data-suggestion-person]');
+      const project=target.closest('[data-suggestion-project]');
+      if(person){onSelect?.('personas',person.dataset.suggestionPerson);return true;}
+      if(project){onSelect?.('proyectos',project.dataset.suggestionProject);return true;}
+      return false;
+    };
+    box.addEventListener('click',e=>select(e.target));
+    box.addEventListener('keydown',e=>{
+      if((e.key==='Enter'||e.key===' ')&&e.target.closest('[data-suggestion-project],[data-suggestion-person]')){
+        e.preventDefault();select(e.target);
+      }
+    });
   }
 
   return {init,render};

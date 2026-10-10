@@ -5,6 +5,8 @@ export function createPublicApi({listEntity,json}){
     profesion:r.profesion||'',
     especialidad:r.especialidad||'',
     tiene_proyecto_propio:r.tiene_proyecto_propio||'',
+    puede_aportar:r.puede_aportar||'',
+    busca:r.busca||'',
     estado:r.estado||'Activo'
   });
 
@@ -83,7 +85,19 @@ export function createPublicApi({listEntity,json}){
       listEntity(env,'equipos')
     ]);
     const peopleMap=new Map(people.map(p=>[String(p.id),publicPerson(p)]));
-    const projectMap=new Map(projects.map(p=>[String(p.id),publicProject(p)]));
+    // El dueño se resuelve únicamente mediante creador_id registrado.
+    // Nunca se atribuyen automáticamente proyectos antiguos sin autor.
+    const withOwner=p=>{
+      const safe=publicProject(p);
+      const owner=peopleMap.get(String(safe.creador_id||''))||null;
+      return {
+        ...safe,
+        creador:owner,
+        autor_nombre:owner?.nombre_completo||'Responsable pendiente de identificar',
+        autor_verificado:!!owner
+      };
+    };
+    const projectMap=new Map(projects.map(p=>[String(p.id),withOwner(p)]));
     const needMap=new Map(needs.map(n=>[String(n.id),publicNeed(n)]));
     const capMap=new Map(caps.map(x=>[String(x.id),publicCapability(x)]));
     const safeMatches=matches
@@ -108,7 +122,7 @@ export function createPublicApi({listEntity,json}){
         equipos:teams.length
       },
       personas:people.slice(0,60).map(publicPerson),
-      proyectos:projects.slice(0,60).map(publicProject),
+      proyectos:projects.slice(0,60).map(withOwner),
       necesidades:needs.slice(0,60).map(publicNeed),
       capacidades:caps.slice(0,60).map(publicCapability),
       equipos:teams.slice(0,60).map(publicTeam),
@@ -138,15 +152,19 @@ export function createPublicApi({listEntity,json}){
     if(!needle)return json({query:q,results:[]});
     const results=[];
 
-    for(const row of await listEntity(env,'personas')){
+    const searchablePeople=await listEntity(env,'personas');
+    const searchablePeopleMap=new Map(searchablePeople.map(p=>[String(p.id),publicPerson(p)]));
+    for(const row of searchablePeople){
       const safe=publicPerson(row);
       if(Object.values(safe).join(' ').toLowerCase().includes(needle))
         results.push({entity:'personas',id:safe.id,label:safe.nombre_completo,row:safe});
     }
     for(const row of await listEntity(env,'proyectos')){
       const safe=publicProject(row);
-      if(Object.values(safe).join(' ').toLowerCase().includes(needle))
-        results.push({entity:'proyectos',id:safe.id,label:safe.nombre,row:safe});
+      const owner=searchablePeopleMap.get(String(safe.creador_id||''))||null;
+      const publicWithOwner={...safe,creador:owner,autor_nombre:owner?.nombre_completo||'Responsable pendiente de identificar'};
+      if([safe.nombre,safe.sector,safe.etapa,safe.descripcion,publicWithOwner.autor_nombre].join(' ').toLowerCase().includes(needle))
+        results.push({entity:'proyectos',id:safe.id,label:safe.nombre,row:publicWithOwner});
     }
     for(const row of await listEntity(env,'capacidades')){
       const safe=publicCapability(row);

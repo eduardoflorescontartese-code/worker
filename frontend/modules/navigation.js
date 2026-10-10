@@ -11,6 +11,47 @@ export function createNavigation({$, $$, esc, getDashboard, renderDashboard, bin
     return '<article class="directory-card"><div><h3>'+esc(title)+'</h3><p>'+esc(subtitle||'')+'</p>'+(body?'<small>'+esc(body)+'</small>':'')+(tags.length?'<div class="match-meta">'+tags.filter(Boolean).map(t=>'<span class="tag">'+esc(t)+'</span>').join('')+'</div>':'')+'</div></article>';
   }
 
+  function projectOwner(p){
+    const person=p.creador || (getDashboard().personas||[]).find(x=>String(x.id)===String(p.creador_id)) || null;
+    return person?.nombre_completo ? person : null;
+  }
+
+  // Las fichas se consultan sin login y nunca exponen correos ni claves de edición.
+  function showPerson(id){
+    const d=getDashboard();
+    const person=(d.personas||[]).find(x=>String(x.id)===String(id));
+    if(!person)return;
+    activeView='personas';
+    setActiveControls('personas');
+    setPanelHeader('FICHA DE PERSONA',person.nombre_completo||'Perfil de MESA','Perfil público de la comunidad.');
+    const projects=(d.proyectos||[]).filter(p=>String(p.creador_id||'')===String(person.id));
+    $('#matchesList').innerHTML=
+      directoryCard(person.nombre_completo||'Persona en MESA',[person.profesion,person.especialidad].filter(Boolean).join(' · '),
+        [person.puede_aportar&&'Puede aportar: '+person.puede_aportar,person.busca&&'Busca: '+person.busca].filter(Boolean).join('\n'),
+        [person.estado])+
+      '<div class="profile-related"><h3>Proyectos de esta persona ('+projects.length+')</h3>'+
+      (projects.length?projects.map(p=>'<article class="directory-card" data-show-project="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Ver proyecto"><strong>'+esc(p.nombre||'Proyecto')+'</strong><p>'+esc(p.etapa||'')+'</p></article>').join('')
+        :'<p>No tiene proyectos vinculados todavía.</p>')+'</div>';
+  }
+
+  function showProject(id){
+    const d=getDashboard();
+    const project=(d.proyectos||[]).find(x=>String(x.id)===String(id));
+    if(!project)return;
+    const owner=projectOwner(project);
+    activeView='proyectos';
+    setActiveControls('proyectos');
+    setPanelHeader('FICHA DEL PROYECTO',project.nombre||'Proyecto de MESA','Información, etapa y responsable del proyecto.');
+    $('#matchesList').innerHTML=
+      directoryCard(project.nombre||'Proyecto',[project.sector,project.etapa].filter(Boolean).join(' · '),
+        project.descripcion||'Descripción pendiente de completar.',[project.estado])+
+      '<div class="profile-related"><h3>Responsable del proyecto</h3>'+
+      (owner
+        ?'<button type="button" class="owner-profile-link" data-show-person="'+esc(owner.id)+'">'+esc(owner.nombre_completo)+' — Ver perfil público ›</button>'
+        :'<p>Responsable pendiente de identificar. No se atribuirá este proyecto a otra persona sin verificar su titularidad.</p>')+
+      '</div>';
+  }
+
   function emptyDirectory(title,copy){
     return '<div class="empty-state"><div><div class="empty-icon">◎</div><h3>'+esc(title)+'</h3><p>'+esc(copy)+'</p><button class="primary-btn open-intake">Sumarme a MESA</button></div></div>';
   }
@@ -33,10 +74,10 @@ export function createNavigation({$, $$, esc, getDashboard, renderDashboard, bin
     }
     if(view==='personas'){
       setPanelHeader('PERSONAS','Personas de la comunidad','Perfiles públicos seguros: profesión y especialidad, sin exponer correos.');
-      list.innerHTML=dashboard.personas?.length?dashboard.personas.map(p=>directoryCard(p.nombre_completo||p.id,[p.profesion,p.especialidad].filter(Boolean).join(' · '),'',[p.estado])).join(''):emptyDirectory('Sin personas todavía','Las personas aparecerán cuando completen su ficha.');
+      list.innerHTML=dashboard.personas?.length?dashboard.personas.map(p=>'<div class="clickable-directory" data-show-person="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Abrir perfil de '+esc(p.nombre_completo||'persona')+'">'+directoryCard(p.nombre_completo||p.id,[p.profesion,p.especialidad].filter(Boolean).join(' · '),'',[p.estado])+'</div>').join(''):emptyDirectory('Sin personas todavía','Las personas aparecerán cuando completen su ficha.');
     }else if(view==='proyectos'){
       setPanelHeader('PROYECTOS','Proyectos incorporados','Ideas y proyectos cargados por la comunidad.');
-      list.innerHTML=dashboard.proyectos?.length?dashboard.proyectos.map(p=>directoryCard(p.nombre||p.id,[p.sector,p.etapa].filter(Boolean).join(' · '),p.descripcion,[p.estado])).join(''):emptyDirectory('Sin proyectos todavía','El primer proyecto puede cargarse ahora mismo.');
+      list.innerHTML=dashboard.proyectos?.length?dashboard.proyectos.map(p=>'<div class="clickable-directory" data-show-project="'+esc(p.id)+'" role="button" tabindex="0" aria-label="Ver proyecto '+esc(p.nombre||'')+'">'+directoryCard(p.nombre||p.id,[p.sector,p.etapa].filter(Boolean).join(' · '),[p.descripcion, 'Responsable: '+(projectOwner(p)?.nombre_completo||'Pendiente de identificar')].filter(Boolean).join(' · '),[p.estado])+'</div>').join(''):emptyDirectory('Sin proyectos todavía','El primer proyecto puede cargarse ahora mismo.');
     }else if(view==='necesidades'){
       setPanelHeader('NECESIDADES','Qué hace falta para avanzar','Necesidades declaradas o derivadas de información real.');
       list.innerHTML=dashboard.necesidades?.length?dashboard.necesidades.map(n=>directoryCard(n.categoria||'Necesidad',n.necesidad||'',n.detalle||'',[n.prioridad,n.estado])).join(''):emptyDirectory('Sin necesidades todavía','Aparecerán cuando las personas y proyectos indiquen qué necesitan.');
@@ -76,6 +117,8 @@ export function createNavigation({$, $$, esc, getDashboard, renderDashboard, bin
 
   function renderSearchSelection(item){
     if(!item)return;
+    if(item.entity==='proyectos'){showProject(item.id);$('#searchResults').hidden=true;return;}
+    if(item.entity==='personas'){showPerson(item.id);$('#searchResults').hidden=true;return;}
     const row=item.row||{};
     activeView=item.entity||'matching';
     setActiveControls(activeView);
@@ -89,7 +132,28 @@ export function createNavigation({$, $$, esc, getDashboard, renderDashboard, bin
     $('#searchResults').hidden=true;
   }
 
+  function init(){
+    const list=$('#matchesList');
+    function openFrom(target){
+      const project=target.closest('[data-show-project]');
+      const person=target.closest('[data-show-person]');
+      if(project){showProject(project.dataset.showProject);return true;}
+      if(person){showPerson(person.dataset.showPerson);return true;}
+      return false;
+    }
+    list.addEventListener('click',e=>openFrom(e.target));
+    list.addEventListener('keydown',e=>{
+      if(e.key==='Enter'||e.key===' '){
+        const target=e.target.closest('[data-show-project],[data-show-person]');
+        if(target){e.preventDefault();openFrom(target);}
+      }
+    });
+  }
+
   return {
+    init,
+    showProject,
+    showPerson,
     getActiveView:()=>activeView,
     setPanelHeader,
     renderSection,
