@@ -1,4 +1,4 @@
-export function createSuggestions({$, $, esc, getDashboard, onSelect}){
+export function createSuggestions({$, $$, esc, getDashboard, onSelect}){
   let active='personas';
 
   function initials(name){
@@ -94,7 +94,7 @@ export function createSuggestions({$, $, esc, getDashboard, onSelect}){
   }
 
   function init(){
-    $('.suggestion-tab').forEach(b=>b.addEventListener('click',()=>{
+    $$('.suggestion-tab').forEach(b=>b.addEventListener('click',()=>{
       active=b.dataset.suggestionTab||'personas';
       render();
     }));
